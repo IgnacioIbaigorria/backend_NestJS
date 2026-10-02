@@ -1,0 +1,122 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Categorías ───────────────────────────────────────────────
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// ─── Etiquetas ────────────────────────────────────────────────
+model Tag {
+  id       String    @id @default(uuid())
+  name     String    @unique
+  products Product[]
+  createdAt DateTime @default(now())
+}
+
+// ─── Productos ────────────────────────────────────────────────
+model Product {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  price       Decimal   @db.Decimal(10, 2)
+  costPrice   Decimal   @db.Decimal(10, 2) @default(0)
+  stock       Int       @default(0)
+  minStock    Int       @default(5)
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  tags        Tag[]
+  sales       Sale[]
+  reposiciones Reposicion[]
+  history     ProductHistory[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([categoryId])
+}
+
+// ─── Ventas ───────────────────────────────────────────────────
+model Sale {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int
+  unitPrice Decimal  @db.Decimal(10, 2)
+  total     Decimal  @db.Decimal(10, 2)
+  payments  Payment[]
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+  @@index([createdAt])
+}
+
+model Payment {
+  id            String   @id @default(uuid())
+  saleId        String
+  sale          Sale     @relation(fields: [saleId], references: [id])
+  amount        Decimal  @db.Decimal(10, 2)
+  paymentMethod String
+  createdAt     DateTime @default(now())
+
+  @@index([saleId])
+}
+
+// ─── Caja (Singleton) ─────────────────────────────────────────
+model Caja {
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ─── Gastos ───────────────────────────────────────────────────
+model Expense {
+  id          String   @id @default(uuid())
+  description String
+  amount      Decimal  @db.Decimal(10, 2)
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+// ─── Reposición (Restocking) ──────────────────────────────────
+model Reposicion {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int
+  supplier  String?
+  cost      Decimal? @db.Decimal(10, 2)
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+  @@index([createdAt])
+}
+
+// ─── Historial de cambios de productos ───────────────────────
+model ProductHistory {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  field     String
+  oldValue  String?
+  newValue  String?
+  changedBy String?
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+  @@index([createdAt])
+}
