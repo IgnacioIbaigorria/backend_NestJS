@@ -1,114 +1,200 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Stock Management Platform
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Backend y frontend para gestionar el inventario y la operación diaria de un comercio. La aplicación centraliza productos, categorías, etiquetas, ventas, pagos, reposición de stock, caja y auditoría de cambios en una API REST con documentación OpenAPI.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+> Proyecto full-stack orientado a demostrar diseño modular, persistencia relacional, validación de datos, migraciones, containerización y despliegue automatizado.
 
-## Description
+## Funcionalidades
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- **Productos:** alta, edición, eliminación, búsqueda, filtrado por categoría y detección de bajo stock.
+- **Catálogos:** administración de categorías y etiquetas asociadas a productos.
+- **Ventas:** registro de ventas con cantidad, precio, total y pagos divididos por método.
+- **Caja:** resumen de ventas, ganancias, gastos y balance neto para un período.
+- **Reposición:** registro de entradas de stock con proveedor y costo.
+- **Historial:** auditoría de cambios realizados sobre los productos.
+- **Documentación interactiva:** Swagger disponible en `/api/docs`.
 
-## Project setup
+## Stack tecnológico
 
-```bash
-$ npm install
+| Área | Tecnología |
+| --- | --- |
+| Backend | NestJS 12, TypeScript, Node.js 22 |
+| API | REST, Swagger/OpenAPI |
+| Persistencia | PostgreSQL, Prisma ORM 7 |
+| Validación | `class-validator`, `class-transformer` |
+| Frontend | React 18, Vite, React Router, Axios |
+| Infraestructura | Docker, Docker Compose, AWS EC2 |
+| Base de datos administrada | Supabase |
+| Automatización | GitHub Actions |
+| Calidad | oxlint, Prettier, Vitest |
+
+## Arquitectura
+
+El backend sigue una arquitectura modular de NestJS. Cada dominio encapsula su controlador, servicio, DTOs y módulo, mientras que `PrismaModule` concentra el acceso a datos.
+
+```text
+Cliente web
+    │
+    ▼
+Controladores REST
+    │  validación global de DTOs
+    ▼
+Servicios de dominio
+    │
+    ▼
+PrismaService ─── Prisma ORM ─── PostgreSQL (Supabase)
 ```
 
-## Compile and run the project
+### Organización principal
 
-```bash
-# development
-$ npm run start
+```text
+src/
+├── main.ts                 # Bootstrap, CORS, validación y Swagger
+├── app.module.ts           # Composition root
+├── prisma/                 # Cliente Prisma y conexión a PostgreSQL
+├── products/               # Productos y control de stock
+├── categories/             # Categorías
+├── tags/                   # Etiquetas
+├── sales/                  # Ventas y pagos
+├── caja/                   # Resúmenes y gastos
+├── reposicion/             # Entradas de stock
+└── history/                # Historial de cambios
 
-# watch mode
-$ npm run start:dev
+frontend/
+├── src/App.jsx             # Navegación de la aplicación web
+├── src/pages/              # Vistas por dominio
+└── src/services/api.js     # Cliente Axios para la API
 
-# production mode
-$ npm run start:prod
+prisma/
+├── schema.prisma           # Modelo relacional
+└── migrations/             # Migraciones versionadas
 ```
 
-## Run tests
+La validación global usa `whitelist`, `forbidNonWhitelisted` y `transform`, por lo que los endpoints rechazan propiedades no declaradas en sus DTOs y convierten los valores de entrada al tipo esperado.
+
+## Modelo de datos
+
+El dominio se apoya en PostgreSQL y mantiene relaciones explícitas entre:
+
+- `Product`, `Category` y `Tag` para el catálogo.
+- `Product` y `Sale` para descontar y consultar ventas.
+- `Sale` y `Payment` para soportar pagos divididos.
+- `Product` y `Reposicion` para registrar ingresos de stock.
+- `Product` y `ProductHistory` para conservar trazabilidad.
+- `Expense` y `Caja` para los movimientos y resúmenes financieros.
+
+Las migraciones se aplican automáticamente al iniciar el contenedor de producción con `prisma migrate deploy`.
+
+## Despliegue actual
+
+Según la configuración versionada del repositorio:
+
+- **Backend:** desplegado en una instancia **AWS EC2** mediante Docker Compose.
+- **API pública actual:** `http://34.227.197.241:3000`
+- **Swagger:** `http://34.227.197.241:3000/api/docs`
+- **Base de datos:** PostgreSQL administrado en **Supabase**.
+- **Frontend:** incluido en este repositorio como aplicación React/Vite. El workflow de producción actual automatiza el despliegue del backend; el frontend puede ejecutarse de forma independiente.
+
+> Las credenciales, claves SSH y la cadena de conexión de base de datos se administran como secretos o variables de entorno y no forman parte del repositorio.
+
+### Flujo CI/CD
+
+Cada pull request hacia `main` ejecuta:
+
+1. Instalación reproducible de dependencias.
+2. Generación del cliente Prisma.
+3. Lint con oxlint.
+4. Build de la aplicación.
+5. Tests unitarios con Vitest.
+
+Cada push a `main` que supera esas validaciones conecta por SSH con EC2, actualiza el código y ejecuta:
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+docker compose up -d --build
 ```
 
-## Deployment
+El contenedor arranca aplicando las migraciones pendientes y luego inicia la API.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+## Ejecución local
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### Requisitos
+
+- Node.js 22+
+- npm 10+
+- PostgreSQL accesible mediante `DATABASE_URL`
+- Docker y Docker Compose (opcional, para ejecutar el stack containerizado)
+
+### Backend
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+git clone https://github.com/IgnacioIbaigorria/backend_NestJS.git
+cd backend_NestJS
+
+npm install --legacy-peer-deps
+npx prisma generate
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+Crear un archivo `.env` en la raíz:
 
-## Observability
+```env
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require"
+PORT=3000
+```
 
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
+Aplicar las migraciones y levantar el backend:
 
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
+```bash
+npx prisma migrate deploy
+npm run start:dev
+```
 
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
+La API quedará disponible en `http://localhost:3000` y Swagger en `http://localhost:3000/api/docs`.
 
-## Resources
+### Frontend
 
-Check out a few resources that may come in handy when working with NestJS:
+En otra terminal:
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observer](https://observer.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-## Support
+El frontend se ejecuta por defecto en `http://localhost:3001`. Vite tiene configurado un proxy `/api` para desarrollo; el cliente Axios incluido actualmente apunta a la API desplegada, por lo que para trabajar completamente contra `localhost` hay que ajustar esa base URL.
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## Comandos útiles
 
-## Stay in touch
+Desde la raíz del proyecto:
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+| Comando | Uso |
+| --- | --- |
+| `npm run start:dev` | Backend en modo desarrollo con watch |
+| `npm run build` | Compila el backend en `dist/` |
+| `npm run lint` | Ejecuta oxlint |
+| `npm run test` | Ejecuta tests unitarios |
+| `npm run test:e2e` | Ejecuta tests end-to-end |
+| `npm run test:cov` | Genera reporte de cobertura |
+| `npm run format` | Formatea el código TypeScript |
+| `docker compose up --build` | Levanta la API en un contenedor |
 
-## License
+## API principal
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Todos los endpoints usan JSON y están documentados en Swagger.
+
+| Recurso | Operaciones destacadas |
+| --- | --- |
+| `/products` | CRUD, búsqueda, filtro por categoría y `/low-stock` |
+| `/categories` | CRUD de categorías |
+| `/tags` | CRUD de etiquetas |
+| `/sales` | Crear, consultar, filtrar por fechas y `/summary` |
+| `/caja` | Resumen, gastos y balance |
+| `/reposicion` | Registrar y consultar reposiciones |
+| `/history` | Consultar cambios de productos |
+
+## Estado del proyecto
+
+El sistema cuenta con un flujo funcional de inventario y operación comercial, una API documentada, persistencia con migraciones y despliegue automatizado. Las siguientes evoluciones naturales serían incorporar autenticación y autorización por roles, separar la configuración del frontend por ambiente y añadir observabilidad y métricas de producción.
+
+## Licencia
+
+Proyecto privado de portfolio. No se autoriza su redistribución o uso comercial sin permiso del autor.
