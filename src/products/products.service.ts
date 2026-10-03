@@ -97,7 +97,7 @@ export class ProductsService {
         oldValue: string | null,
         newValue: string | null,
       ];
-      const changes: ProductChange[] = [
+      const possibleChanges: ProductChange[] = [
         ['name', currentProduct.name, updatedProduct.name],
         ['description', currentProduct.description, updatedProduct.description],
         ['price', currentProduct.price.toString(), updatedProduct.price.toString()],
@@ -114,7 +114,10 @@ export class ProductsService {
         ],
         ['categoryId', currentProduct.categoryId, updatedProduct.categoryId],
         ['tagIds', oldTags, newTags],
-      ].filter(([field, oldValue, newValue]) => oldValue !== newValue);
+      ];
+      const changes = possibleChanges.filter(
+        ([field, oldValue, newValue]) => oldValue !== newValue,
+      );
 
       if (changes.length > 0) {
         await tx.productHistory.createMany({
