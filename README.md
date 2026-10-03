@@ -195,6 +195,8 @@ Todos los endpoints usan JSON y están documentados en Swagger.
 
 El sistema cuenta con un flujo funcional de inventario y operación comercial, una API documentada, persistencia con migraciones y despliegue automatizado. Las siguientes evoluciones naturales serían incorporar autenticación y autorización por roles, separar la configuración del frontend por ambiente y añadir observabilidad y métricas de producción.
 
-## Licencia
+## Sobre el proyecto
 
-Proyecto privado de portfolio. No se autoriza su redistribución o uso comercial sin permiso del autor.
+Este proyecto fue desarrollado como una solución práctica para gestionar inventario y operaciones comerciales, aplicando buenas prácticas de arquitectura backend, persistencia de datos y despliegue automatizado.
+
+Si quieres conocer más sobre las decisiones técnicas o el proceso de desarrollo, puedes explorar el código, la documentación de la API y el historial de cambios del repositorio.
