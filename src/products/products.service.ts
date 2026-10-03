@@ -57,24 +57,72 @@ export class ProductsService {
   }
 
   async update(id: string, dto: UpdateProductDto) {
-    await this.findOne(id);
-
     const { categoryId, tagIds, ...rest } = dto;
 
-    return this.prisma.product.update({
-      where: { id },
-      data: {
-        ...rest,
-        category: categoryId !== undefined
-          ? categoryId === null
-            ? { disconnect: true }
-            : { connect: { id: categoryId } }
-          : undefined,
-        tags: tagIds
-          ? { set: tagIds.map((tagId) => ({ id: tagId })) }
-          : undefined,
-      },
-      include: { category: true, tags: true },
+    return this.prisma.$transaction(async (tx) => {
+      const currentProduct = await tx.product.findUnique({
+        where: { id },
+        include: { tags: { select: { id: true } } },
+      });
+      if (!currentProduct) {
+        throw new NotFoundException(`Producto ${id} no encontrado`);
+      }
+
+      const updatedProduct = await tx.product.update({
+        where: { id },
+        data: {
+          ...rest,
+          category: categoryId !== undefined
+            ? categoryId === null
+              ? { disconnect: true }
+              : { connect: { id: categoryId } }
+            : undefined,
+          tags: tagIds !== undefined
+            ? { set: tagIds.map((tagId) => ({ id: tagId })) }
+            : undefined,
+        },
+        include: { category: true, tags: true },
+      });
+
+      const oldTags = currentProduct.tags
+        .map((tag) => tag.id)
+        .sort()
+        .join(',');
+      const newTags = updatedProduct.tags
+        .map((tag) => tag.id)
+        .sort()
+        .join(',');
+      const changes = [
+        ['name', currentProduct.name, updatedProduct.name],
+        ['description', currentProduct.description, updatedProduct.description],
+        ['price', currentProduct.price.toString(), updatedProduct.price.toString()],
+        [
+          'costPrice',
+          currentProduct.costPrice.toString(),
+          updatedProduct.costPrice.toString(),
+        ],
+        ['stock', String(currentProduct.stock), String(updatedProduct.stock)],
+        [
+          'minStock',
+          String(currentProduct.minStock),
+          String(updatedProduct.minStock),
+        ],
+        ['categoryId', currentProduct.categoryId, updatedProduct.categoryId],
+        ['tagIds', oldTags, newTags],
+      ].filter(([field, oldValue, newValue]) => oldValue !== newValue);
+
+      if (changes.length > 0) {
+        await tx.productHistory.createMany({
+          data: changes.map(([field, oldValue, newValue]) => ({
+            productId: id,
+            field,
+            oldValue,
+            newValue,
+          })),
+        });
+      }
+
+      return updatedProduct;
     });
   }
 
