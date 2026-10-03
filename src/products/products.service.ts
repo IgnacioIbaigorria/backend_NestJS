@@ -92,7 +92,12 @@ export class ProductsService {
         .map((tag) => tag.id)
         .sort()
         .join(',');
-      const changes = [
+      type ProductChange = [
+        field: string,
+        oldValue: string | null,
+        newValue: string | null,
+      ];
+      const changes: ProductChange[] = [
         ['name', currentProduct.name, updatedProduct.name],
         ['description', currentProduct.description, updatedProduct.description],
         ['price', currentProduct.price.toString(), updatedProduct.price.toString()],
