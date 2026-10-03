@@ -6,5 +6,7 @@ services:
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - PORT=3000
+    volumes:
+      - ./global-bundle.pem:/app/global-bundle.pem:ro
     restart: unless-stopped
 

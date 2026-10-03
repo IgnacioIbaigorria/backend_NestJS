@@ -16,6 +16,7 @@ function Products() {
 
   const loadProducts = async () => {
     const res = await api.get('/products')
+    console.log("Products", res.data)
     setProducts(res.data)
   }
 
@@ -70,30 +71,30 @@ function Products() {
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Nombre</label>
-            <input type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
+            <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required />
           </div>
           <div className="form-group">
             <label>Precio Costo</label>
-            <input type="number" step="0.01" value={form.costPrice} onChange={e => setForm({...form, costPrice: e.target.value})} />
+            <input type="number" step="0.01" value={form.costPrice} onChange={e => setForm({ ...form, costPrice: e.target.value })} />
           </div>
           <div className="form-group">
             <label>Precio Venta</label>
-            <input type="number" step="0.01" value={form.price} onChange={e => setForm({...form, price: e.target.value})} required />
+            <input type="number" step="0.01" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} required />
           </div>
           <div className="form-group">
             <label>Stock</label>
-            <input type="number" value={form.stock} onChange={e => setForm({...form, stock: e.target.value})} />
+            <input type="number" value={form.stock} onChange={e => setForm({ ...form, stock: e.target.value })} />
           </div>
           <div className="form-group">
             <label>Categoría</label>
-            <select value={form.categoryId} onChange={e => setForm({...form, categoryId: e.target.value})}>
+            <select value={form.categoryId} onChange={e => setForm({ ...form, categoryId: e.target.value })}>
               <option value="">Sin categoría</option>
               {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           <div className="form-group">
             <label>Etiquetas</label>
-            <select multiple value={form.tagIds} onChange={e => setForm({...form, tagIds: Array.from(e.target.selectedOptions, o => o.value)})}>
+            <select multiple value={form.tagIds} onChange={e => setForm({ ...form, tagIds: Array.from(e.target.selectedOptions, o => o.value) })}>
               {tags.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
           </div>
