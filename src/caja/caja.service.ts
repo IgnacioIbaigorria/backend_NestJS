@@ -37,7 +37,9 @@ export class CajaService {
 
     const salesWithProfit = sales.map((sale) => {
       const saleTotal = sale.total.toNumber();
-      const costTotal = sale.product.costPrice.toNumber() * sale.quantity;
+      const productName = sale.product?.name ?? 'Producto eliminado';
+      const costPrice = sale.product?.costPrice.toNumber() ?? 0;
+      const costTotal = costPrice * sale.quantity;
       const profit = saleTotal - costTotal;
 
       totalSales += saleTotal;
@@ -45,12 +47,13 @@ export class CajaService {
 
       return {
         id: sale.id,
-        productName: sale.product.name,
+        productName,
         quantity: sale.quantity,
         unitPrice: sale.unitPrice.toNumber(),
         total: saleTotal,
-        costPrice: sale.product.costPrice.toNumber(),
+        costPrice,
         profit,
+        productMissing: sale.product === null,
         payments: sale.payments.map((p) => ({
           amount: p.amount.toNumber(),
           paymentMethod: p.paymentMethod,

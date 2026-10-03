@@ -80,6 +80,16 @@ export class ProductsService {
 
   async remove(id: string) {
     await this.findOne(id);
+
+    const salesCount = await this.prisma.sale.count({
+      where: { productId: id },
+    });
+    if (salesCount > 0) {
+      throw new ConflictException(
+        'No se puede eliminar un producto que tiene ventas registradas',
+      );
+    }
+
     return this.prisma.product.delete({ where: { id } });
   }
 
