@@ -7,11 +7,13 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Roles } from '../auth/auth.decorators.js';
 import { CajaService } from './caja.service.js';
 import { CreateExpenseDto } from './dto/create-expense.dto.js';
 
 @ApiTags('caja')
+@ApiBearerAuth()
 @Controller('caja')
 export class CajaController {
   constructor(private readonly cajaService: CajaService) {}
@@ -38,11 +40,13 @@ export class CajaController {
   }
 
   @Post('expenses')
+  @Roles('ADMIN', 'MANAGER')
   addExpense(@Body() dto: CreateExpenseDto) {
     return this.cajaService.addExpense(dto.description, dto.amount);
   }
 
   @Delete('expenses/:id')
+  @Roles('ADMIN', 'MANAGER')
   removeExpense(@Param('id') id: string) {
     return this.cajaService.removeExpense(id);
   }

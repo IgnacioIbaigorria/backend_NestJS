@@ -1,8 +1,8 @@
 # PuntoEco Gestión
 
-Backend y frontend para gestionar una tienda de productos ecofriendly y la operación comercial diaria. La aplicación centraliza un catálogo de alternativas reutilizables, cosmética natural y productos de cuidado personal, junto con inventario, categorías, etiquetas, ventas, pagos, reposición de stock, caja y auditoría de cambios.
+API backend para gestionar una tienda de productos ecofriendly y su operación comercial diaria. La aplicación centraliza un catálogo de alternativas reutilizables, cosmética natural y productos de cuidado personal, junto con inventario, categorías, etiquetas, ventas, pagos, reposición de stock, caja y auditoría de cambios.
 
-> Proyecto full-stack orientado a demostrar diseño modular, persistencia relacional, validación de datos, migraciones, containerización y despliegue automatizado.
+> Proyecto orientado a demostrar diseño modular, persistencia relacional, validación de datos, migraciones, containerización y despliegue automatizado.
 
 ## Funcionalidades
 
@@ -14,6 +14,7 @@ Backend y frontend para gestionar una tienda de productos ecofriendly y la opera
 - **Reposición:** registro de entradas de stock con proveedor y costo.
 - **Historial:** auditoría de cambios realizados sobre los productos.
 - **Documentación interactiva:** Swagger disponible en `/api/docs`.
+- **Autenticación:** Amazon Cognito User Pool con JWT y grupos como roles.
 
 ## Stack tecnológico
 
@@ -23,7 +24,6 @@ Backend y frontend para gestionar una tienda de productos ecofriendly y la opera
 | API | REST, Swagger/OpenAPI |
 | Persistencia | PostgreSQL, Prisma ORM 7 |
 | Validación | `class-validator`, `class-transformer` |
-| Frontend | React 18, Vite, React Router, Axios |
 | Infraestructura | Docker, Docker Compose, AWS EC2 |
 | Base de datos administrada | Supabase |
 | Automatización | GitHub Actions |
@@ -34,7 +34,7 @@ Backend y frontend para gestionar una tienda de productos ecofriendly y la opera
 El backend sigue una arquitectura modular de NestJS. Cada dominio encapsula su controlador, servicio, DTOs y módulo, mientras que `PrismaModule` concentra el acceso a datos.
 
 ```text
-Cliente web
+Cliente HTTP
     │
     ▼
 Controladores REST
@@ -59,12 +59,8 @@ src/
 ├── sales/                  # Ventas y pagos
 ├── caja/                   # Resúmenes y gastos
 ├── reposicion/             # Entradas de stock
-└── history/                # Historial de cambios
-
-frontend/
-├── src/App.jsx             # Navegación de la aplicación web
-├── src/pages/              # Vistas por dominio
-└── src/services/api.js     # Cliente Axios para la API
+├── history/                # Historial de cambios
+└── auth/                   # Validación JWT de Cognito y autorización por roles
 
 prisma/
 ├── schema.prisma           # Modelo relacional
@@ -72,6 +68,68 @@ prisma/
 ```
 
 La validación global usa `whitelist`, `forbidNonWhitelisted` y `transform`, por lo que los endpoints rechazan propiedades no declaradas en sus DTOs y convierten los valores de entrada al tipo esperado.
+
+## Autenticación y autorización
+
+La API valida **access tokens JWT emitidos por Amazon Cognito** mediante `aws-jwt-verify`. La validación comprueba la firma RSA usando las claves públicas JWKS del User Pool, el issuer, la expiración, el uso del token (`access`) y el `client_id`.
+
+Todos los endpoints requieren:
+
+```http
+Authorization: Bearer <cognito-access-token>
+```
+
+Los grupos de Cognito se interpretan como roles:
+
+| Grupo | Alcance |
+| --- | --- |
+| `ADMIN` | Acceso completo |
+| `MANAGER` | Operación comercial y configuración del catálogo |
+| `SELLER` | Consulta de productos y registro de ventas |
+| `INVENTORY_MANAGER` | Productos, stock y reposiciones |
+| `AUDITOR` | Consultas e historial |
+
+Las operaciones de lectura requieren un token válido. Las operaciones de escritura además verifican el grupo del usuario mediante `RolesGuard`.
+
+### Configuración de Cognito
+
+1. Crear un **User Pool** en la misma región de AWS que uses para el proyecto.
+2. Configurar el inicio de sesión con email.
+3. Crear un **App client sin client secret** para el cliente externo que consumirá la API.
+4. Crear los grupos `ADMIN`, `MANAGER`, `SELLER`, `INVENTORY_MANAGER` y `AUDITOR`.
+5. Crear el usuario administrador inicial y asignarlo al grupo `ADMIN`.
+6. Guardar el User Pool ID y el App client ID como variables de entorno:
+
+```env
+COGNITO_USER_POOL_ID=us-east-1_xxxxxxxxx
+COGNITO_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+El cliente externo debe iniciar sesión en Cognito y enviar el **access token**, no el ID token, en cada request. Para Swagger, usar el botón **Authorize** y pegar `Bearer <access-token>`.
+
+### Cognito y capa gratuita
+
+Para User Pools nuevos en el nivel Lite, AWS muestra un tramo gratuito de los primeros **10.000 usuarios activos mensuales (MAUs)**. User Pools antiguos y cuentas elegibles pueden conservar un tramo de hasta **50.000 MAUs**. Verifica el nivel y el precio aplicable a tu cuenta y región en [Amazon Cognito Pricing](https://aws.amazon.com/cognito/pricing/).
+
+Aunque el uso normal de una tienda pequeña suele quedar dentro del tramo gratuito, **SMS para MFA/recuperación y emails de verificación pueden generar cargos separados** mediante SNS/SES. Para empezar sin costos inesperados, usar email para verificación y recuperación, evitar Advanced Security Features hasta necesitarlas y configurar un presupuesto/alerta en AWS Billing.
+
+### Variables necesarias en Docker
+
+El archivo `.env` de la instancia EC2 debe incluir:
+
+```env
+DATABASE_URL=postgresql://...
+PORT=3000
+COGNITO_USER_POOL_ID=us-east-1_xxxxxxxxx
+COGNITO_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+Después de actualizar estas variables:
+
+```bash
+docker compose up -d --build
+docker compose logs --tail=100 api
+```
 
 ## Catálogo inicial
 
@@ -83,7 +141,7 @@ El repositorio incluye `prisma/seed-products.mjs`, un script idempotente que car
 - Etiqueta `sin stock` para los productos marcados como `SIN STOCK` en el documento de origen.
 - `costPrice` calculado con un markup promedio del 75%: `costo = precio de venta / 1,75`.
 
-El documento de origen informa precios y disponibilidad, pero no cantidades. Por eso el seed deja el `stock` inicial en `0` y permite actualizarlo desde el panel de inventario sin inventar datos.
+El documento de origen informa precios y disponibilidad, pero no cantidades. Por eso el seed deja el `stock` inicial en `0`, para que la API pueda recibir las cantidades reales mediante reposiciones.
 
 Para cargar o actualizar todo el catálogo:
 
@@ -114,7 +172,6 @@ Según la configuración versionada del repositorio:
 - **API pública actual:** `http://34.227.197.241:3000`
 - **Swagger:** `http://34.227.197.241:3000/api/docs`
 - **Base de datos:** PostgreSQL administrado en **Supabase**.
-- **Frontend:** incluido en este repositorio como aplicación React/Vite. El workflow de producción actual automatiza el despliegue del backend; el frontend puede ejecutarse de forma independiente.
 
 > Las credenciales, claves SSH y la cadena de conexión de base de datos se administran como secretos o variables de entorno y no forman parte del repositorio.
 
@@ -171,26 +228,6 @@ npm run start:dev
 
 La API quedará disponible en `http://localhost:3000` y Swagger en `http://localhost:3000/api/docs`.
 
-### Frontend
-
-En otra terminal:
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-El frontend se ejecuta por defecto en `http://localhost:3001`. Vite tiene configurado un proxy `/api` para desarrollo; el cliente Axios incluido actualmente apunta a la API desplegada, por lo que para trabajar completamente contra `localhost` hay que ajustar esa base URL.
-
-Para definir explícitamente la API que usará el frontend, crear `frontend/.env`:
-
-```env
-VITE_API_URL=http://localhost:3000
-```
-
-En producción, `VITE_API_URL` debe apuntar a la URL pública de la API antes de ejecutar `npm run build`.
-
 ## Comandos útiles
 
 Desde la raíz del proyecto:
@@ -222,7 +259,7 @@ Todos los endpoints usan JSON y están documentados en Swagger.
 
 ## Estado del proyecto
 
-El sistema cuenta con un flujo funcional para una tienda ecofriendly: catálogo inicial cargable desde el documento comercial, inventario, ventas, caja, reposición y trazabilidad. También incluye una API documentada, persistencia con migraciones y despliegue automatizado. Las siguientes evoluciones naturales serían incorporar autenticación y autorización por roles, separar la configuración del frontend por ambiente y añadir observabilidad y métricas de producción.
+El sistema cuenta con un flujo funcional para una tienda ecofriendly: catálogo inicial cargable desde el documento comercial, inventario, ventas, caja, reposición y trazabilidad. También incluye una API documentada, persistencia con migraciones y despliegue automatizado. Las siguientes evoluciones naturales son incorporar autenticación y autorización por roles, integración con Amazon Cognito y observabilidad de producción.
 
 ## Sobre el proyecto
 

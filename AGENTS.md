@@ -55,5 +55,4 @@ Run `lint -> build -> test` before considering work done.
 ## Gotchas
 
 - `npm install` fails on this machine without `--legacy-peer-deps` (npm 10.9.2 arborist bug with vitest peer deps)
-- Vitest warns that `vite-tsconfig-paths` plugin is redundant — Vite now supports `resolve.tsconfigPaths: true` natively; safe to migrate
 - `nest build` deletes `dist/` on every run (`deleteOutDir: true`)

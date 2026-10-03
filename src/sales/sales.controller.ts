@@ -6,16 +6,19 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Roles } from '../auth/auth.decorators.js';
 import { SalesService } from './sales.service.js';
 import { CreateSaleDto } from './dto/create-sale.dto.js';
 
 @ApiTags('sales')
+@ApiBearerAuth()
 @Controller('sales')
 export class SalesController {
   constructor(private readonly salesService: SalesService) {}
 
   @Post()
+  @Roles('ADMIN', 'MANAGER', 'SELLER')
   create(@Body() dto: CreateSaleDto) {
     return this.salesService.create(dto);
   }

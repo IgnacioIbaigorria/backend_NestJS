@@ -6,7 +6,8 @@ services:
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - PORT=3000
+      - COGNITO_USER_POOL_ID=${COGNITO_USER_POOL_ID}
+      - COGNITO_CLIENT_ID=${COGNITO_CLIENT_ID}
     volumes:
       - ./global-bundle.pem:/app/global-bundle.pem:ro
     restart: unless-stopped
-

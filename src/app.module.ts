@@ -7,9 +7,11 @@ import { SalesModule } from './sales/sales.module.js';
 import { CajaModule } from './caja/caja.module.js';
 import { ReposicionModule } from './reposicion/reposicion.module.js';
 import { HistoryModule } from './history/history.module.js';
+import { AuthModule } from './auth/auth.module.js';
 
 @Module({
   imports: [
+    AuthModule,
     PrismaModule,
     ProductsModule,
     CategoriesModule,

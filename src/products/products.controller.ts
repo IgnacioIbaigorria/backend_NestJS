@@ -8,17 +8,20 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Roles } from '../auth/auth.decorators.js';
 import { ProductsService } from './products.service.js';
 import { CreateProductDto } from './dto/create-product.dto.js';
 import { UpdateProductDto } from './dto/update-product.dto.js';
 
 @ApiTags('products')
+@ApiBearerAuth()
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Post()
+  @Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER')
   create(@Body() dto: CreateProductDto) {
     return this.productsService.create(dto);
   }
@@ -42,11 +45,13 @@ export class ProductsController {
   }
 
   @Patch(':id')
+  @Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER')
   update(@Param('id') id: string, @Body() dto: UpdateProductDto) {
     return this.productsService.update(id, dto);
   }
 
   @Delete(':id')
+  @Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER')
   remove(@Param('id') id: string) {
     return this.productsService.remove(id);
   }

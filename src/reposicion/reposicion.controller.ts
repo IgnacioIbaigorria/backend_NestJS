@@ -6,16 +6,19 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Roles } from '../auth/auth.decorators.js';
 import { ReposicionService } from './reposicion.service.js';
 import { CreateReposicionDto } from './dto/create-reposicion.dto.js';
 
 @ApiTags('reposicion')
+@ApiBearerAuth()
 @Controller('reposicion')
 export class ReposicionController {
   constructor(private readonly reposicionService: ReposicionService) {}
 
   @Post()
+  @Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER')
   create(@Body() dto: CreateReposicionDto) {
     return this.reposicionService.create(dto);
   }

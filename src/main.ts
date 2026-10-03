@@ -15,14 +15,17 @@ async function bootstrap() {
     }),
   );
 
-  // CORS para que el frontend pueda conectarse
+  // Permite consumir la API desde clientes autorizados.
   app.enableCors();
 
   // ─── Swagger ─────────────────────────────────────────────────
   const config = new DocumentBuilder()
     .setTitle('API de Gestión de Stock')
-    .setDescription('Backend NestJS con PostgreSQL (Supabase) y Prisma ORM')
+    .setDescription(
+      'API NestJS para la gestión de una tienda ecofriendly, protegida con Amazon Cognito.',
+    )
     .setVersion('1.0')
+    .addBearerAuth()
     .addTag('products')
     .addTag('categories')
     .addTag('tags')
