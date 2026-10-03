@@ -1,11 +1,12 @@
-# Stock Management Platform
+# PuntoEco Gestión
 
-Backend y frontend para gestionar el inventario y la operación diaria de un comercio. La aplicación centraliza productos, categorías, etiquetas, ventas, pagos, reposición de stock, caja y auditoría de cambios en una API REST con documentación OpenAPI.
+Backend y frontend para gestionar una tienda de productos ecofriendly y la operación comercial diaria. La aplicación centraliza un catálogo de alternativas reutilizables, cosmética natural y productos de cuidado personal, junto con inventario, categorías, etiquetas, ventas, pagos, reposición de stock, caja y auditoría de cambios.
 
 > Proyecto full-stack orientado a demostrar diseño modular, persistencia relacional, validación de datos, migraciones, containerización y despliegue automatizado.
 
 ## Funcionalidades
 
+- **Catálogo ecofriendly:** productos de cuidado capilar, facial y corporal, higiene sustentable, cocina sin descartables, Bee wraps y complementos reutilizables.
 - **Productos:** alta, edición, eliminación, búsqueda, filtrado por categoría y detección de bajo stock.
 - **Catálogos:** administración de categorías y etiquetas asociadas a productos.
 - **Ventas:** registro de ventas con cantidad, precio, total y pagos divididos por método.
@@ -52,7 +53,7 @@ src/
 ├── main.ts                 # Bootstrap, CORS, validación y Swagger
 ├── app.module.ts           # Composition root
 ├── prisma/                 # Cliente Prisma y conexión a PostgreSQL
-├── products/               # Productos y control de stock
+├── products/               # Catálogo ecofriendly y control de stock
 ├── categories/             # Categorías
 ├── tags/                   # Etiquetas
 ├── sales/                  # Ventas y pagos
@@ -71,6 +72,26 @@ prisma/
 ```
 
 La validación global usa `whitelist`, `forbidNonWhitelisted` y `transform`, por lo que los endpoints rechazan propiedades no declaradas en sus DTOs y convierten los valores de entrada al tipo esperado.
+
+## Catálogo inicial
+
+El repositorio incluye `prisma/seed-products.mjs`, un script idempotente que carga el catálogo actualizado de PuntoEco Gestión:
+
+- **12 categorías**: Capilar, Cuidado facial, Complementos, Cocina, Corporal, Cepillos, Cremas, Protectores diarios, Toallitas, Bee wraps, Sérum y Sin categoría.
+- **97 productos** con sus precios de catálogo.
+- Etiqueta `ecofriendly` para todo el catálogo.
+- Etiqueta `sin stock` para los productos marcados como `SIN STOCK` en el documento de origen.
+- `costPrice` calculado con un markup promedio del 75%: `costo = precio de venta / 1,75`.
+
+El documento de origen informa precios y disponibilidad, pero no cantidades. Por eso el seed deja el `stock` inicial en `0` y permite actualizarlo desde el panel de inventario sin inventar datos.
+
+Para cargar o actualizar todo el catálogo:
+
+```bash
+npm run seed:products
+```
+
+El comando es seguro de ejecutar más de una vez: actualiza productos existentes por nombre y evita duplicados.
 
 ## Modelo de datos
 
@@ -162,6 +183,14 @@ npm run dev
 
 El frontend se ejecuta por defecto en `http://localhost:3001`. Vite tiene configurado un proxy `/api` para desarrollo; el cliente Axios incluido actualmente apunta a la API desplegada, por lo que para trabajar completamente contra `localhost` hay que ajustar esa base URL.
 
+Para definir explícitamente la API que usará el frontend, crear `frontend/.env`:
+
+```env
+VITE_API_URL=http://localhost:3000
+```
+
+En producción, `VITE_API_URL` debe apuntar a la URL pública de la API antes de ejecutar `npm run build`.
+
 ## Comandos útiles
 
 Desde la raíz del proyecto:
@@ -193,7 +222,7 @@ Todos los endpoints usan JSON y están documentados en Swagger.
 
 ## Estado del proyecto
 
-El sistema cuenta con un flujo funcional de inventario y operación comercial, una API documentada, persistencia con migraciones y despliegue automatizado. Las siguientes evoluciones naturales serían incorporar autenticación y autorización por roles, separar la configuración del frontend por ambiente y añadir observabilidad y métricas de producción.
+El sistema cuenta con un flujo funcional para una tienda ecofriendly: catálogo inicial cargable desde el documento comercial, inventario, ventas, caja, reposición y trazabilidad. También incluye una API documentada, persistencia con migraciones y despliegue automatizado. Las siguientes evoluciones naturales serían incorporar autenticación y autorización por roles, separar la configuración del frontend por ambiente y añadir observabilidad y métricas de producción.
 
 ## Sobre el proyecto
 

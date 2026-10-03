@@ -15,6 +15,7 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "start:frontend": "node public/server.js",
+    "seed:products": "npx prisma generate && node prisma/seed-products.mjs",
     "lint": "oxlint src/ test/",
     "test": "vitest run",
     "test:watch": "vitest",
