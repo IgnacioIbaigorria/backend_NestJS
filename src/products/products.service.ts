@@ -59,12 +59,19 @@ export class ProductsService {
   async update(id: string, dto: UpdateProductDto) {
     await this.findOne(id);
 
+    const { categoryId, tagIds, ...rest } = dto;
+
     return this.prisma.product.update({
       where: { id },
       data: {
-        ...dto,
-        tags: dto.tagIds
-          ? { set: dto.tagIds.map((tagId) => ({ id: tagId })) }
+        ...rest,
+        category: categoryId !== undefined
+          ? categoryId === null
+            ? { disconnect: true }
+            : { connect: { id: categoryId } }
+          : undefined,
+        tags: tagIds
+          ? { set: tagIds.map((tagId) => ({ id: tagId })) }
           : undefined,
       },
       include: { category: true, tags: true },
