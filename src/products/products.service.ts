@@ -1,11 +1,16 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import type { Cache } from 'cache-manager';
+import { Inject } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateProductDto } from './dto/create-product.dto.js';
 import { UpdateProductDto } from './dto/update-product.dto.js';
 
 @Injectable()
 export class ProductsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    private prisma: PrismaService,
+    @Inject('CACHE_MANAGER') private cacheManager: Cache,
+  ) {}
 
   async create(dto: CreateProductDto) {
     const existing = await this.prisma.product.findUnique({
@@ -15,7 +20,7 @@ export class ProductsService {
       throw new ConflictException(`Ya existe un producto con el nombre "${dto.name}"`);
     }
 
-    return this.prisma.product.create({
+    const product = await this.prisma.product.create({
       data: {
         name: dto.name,
         description: dto.description,
@@ -30,10 +35,22 @@ export class ProductsService {
       },
       include: { category: true, tags: true },
     });
+
+    // Invalidar cache de listas
+    await this.cacheManager.del('products:list:all:all');
+    
+    return product;
   }
 
-  findAll(filters?: { categoryId?: string; search?: string }) {
-    return this.prisma.product.findMany({
+  async findAll(filters?: { categoryId?: string; search?: string }) {
+    const cacheKey = `products:list:${filters?.categoryId ?? 'all'}:${filters?.search ?? 'all'}`;
+    
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const products = await this.prisma.product.findMany({
       where: {
         categoryId: filters?.categoryId,
         OR: filters?.search
@@ -45,21 +62,33 @@ export class ProductsService {
       include: { category: true, tags: true },
       orderBy: { name: 'asc' },
     });
+
+    await this.cacheManager.set(cacheKey, products, 60000); // 60 segundos
+    return products;
   }
 
   async findOne(id: string) {
+    const cacheKey = `products:${id}`;
+    
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const product = await this.prisma.product.findUnique({
       where: { id },
       include: { category: true, tags: true },
     });
     if (!product) throw new NotFoundException(`Producto ${id} no encontrado`);
+
+    await this.cacheManager.set(cacheKey, product, 60000); // 60 segundos
     return product;
   }
 
   async update(id: string, dto: UpdateProductDto) {
     const { categoryId, tagIds, ...rest } = dto;
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const currentProduct = await tx.product.findUnique({
         where: { id },
         include: { tags: { select: { id: true } } },
@@ -132,6 +161,12 @@ export class ProductsService {
 
       return updatedProduct;
     });
+
+    // Invalidar cache
+    await this.cacheManager.del(`products:${id}`);
+    await this.cacheManager.del('products:list:all:all');
+
+    return result;
   }
 
   async remove(id: string) {
@@ -146,14 +181,30 @@ export class ProductsService {
       );
     }
 
-    return this.prisma.product.delete({ where: { id } });
+    const result = await this.prisma.product.delete({ where: { id } });
+
+    // Invalidar cache
+    await this.cacheManager.del(`products:${id}`);
+    await this.cacheManager.del('products:list:all:all');
+
+    return result;
   }
 
-  findLowStock() {
-    return this.prisma.product.findMany({
+  async findLowStock() {
+    const cacheKey = 'products:low-stock';
+    
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const products = await this.prisma.product.findMany({
       where: { stock: { lte: 5 } },
       include: { category: true },
       orderBy: { name: 'asc' },
     });
+
+    await this.cacheManager.set(cacheKey, products, 30000); // 30 segundos
+    return products;
   }
 }

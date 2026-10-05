@@ -2,13 +2,18 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Inject,
 } from '@nestjs/common';
+import type { Cache } from 'cache-manager';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateSaleDto } from './dto/create-sale.dto.js';
 
 @Injectable()
 export class SalesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject('CACHE_MANAGER') private cacheManager: Cache,
+  ) {}
 
   async create(dto: CreateSaleDto) {
     const product = await this.prisma.product.findUnique({
@@ -63,11 +68,24 @@ export class SalesService {
       }),
     ]);
 
+    // Invalidar cache de ventas y productos
+    await this.cacheManager.del('sales:list:all:all:all');
+    await this.cacheManager.del(`products:${dto.productId}`);
+    await this.cacheManager.del('products:list:all:all');
+    await this.cacheManager.del('products:low-stock');
+
     return sale;
   }
 
-  findAll(filters?: { productId?: string; from?: string; to?: string }) {
-    return this.prisma.sale.findMany({
+  async findAll(filters?: { productId?: string; from?: string; to?: string }) {
+    const cacheKey = `sales:list:${filters?.productId ?? 'all'}:${filters?.from ?? 'all'}:${filters?.to ?? 'all'}`;
+    
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const sales = await this.prisma.sale.findMany({
       where: {
         productId: filters?.productId,
         createdAt: {
@@ -78,19 +96,38 @@ export class SalesService {
       include: { product: true, payments: true },
       orderBy: { createdAt: 'desc' },
     });
+
+    await this.cacheManager.set(cacheKey, sales, 60000); // 60 segundos
+    return sales;
   }
 
   async findOne(id: string) {
+    const cacheKey = `sales:${id}`;
+    
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const sale = await this.prisma.sale.findUnique({
       where: { id },
       include: { product: true, payments: true },
     });
     if (!sale) throw new NotFoundException(`Venta ${id} no encontrada`);
+
+    await this.cacheManager.set(cacheKey, sale, 60000); // 60 segundos
     return sale;
   }
 
   // Resumen de ventas por día
   async getSummary(from?: string, to?: string) {
+    const cacheKey = `sales:summary:${from ?? 'all'}:${to ?? 'all'}`;
+    
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const sales = await this.prisma.sale.findMany({
       where: {
         createdAt: {
@@ -107,11 +144,14 @@ export class SalesService {
     );
     const totalItems = sales.reduce((sum, sale) => sum + sale.quantity, 0);
 
-    return {
+    const result = {
       totalSales: sales.length,
       totalRevenue,
       totalItems,
       sales,
     };
+
+    await this.cacheManager.set(cacheKey, result, 60000); // 60 segundos
+    return result;
   }
 }

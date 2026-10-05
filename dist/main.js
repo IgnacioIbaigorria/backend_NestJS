@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module.js';
+import { AllExceptionsFilter } from './common/filters/http-exception.filter.js';
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
     app.useGlobalPipes(new ValidationPipe({
@@ -9,11 +10,13 @@ async function bootstrap() {
         forbidNonWhitelisted: true,
         transform: true,
     }));
+    app.useGlobalFilters(new AllExceptionsFilter());
     app.enableCors();
     const config = new DocumentBuilder()
         .setTitle('API de Gestión de Stock')
-        .setDescription('Backend NestJS con PostgreSQL (Supabase) y Prisma ORM')
+        .setDescription('API NestJS para la gestión de una tienda ecofriendly, protegida con Amazon Cognito.')
         .setVersion('1.0')
+        .addBearerAuth()
         .addTag('products')
         .addTag('categories')
         .addTag('tags')

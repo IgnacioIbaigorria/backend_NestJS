@@ -7,21 +7,37 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { Injectable, NotFoundException } from '@nestjs/common';
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 let CajaService = class CajaService {
     prisma;
-    constructor(prisma) {
+    cacheManager;
+    constructor(prisma, cacheManager) {
         this.prisma = prisma;
+        this.cacheManager = cacheManager;
     }
     async getCaja() {
+        const cacheKey = 'caja:current';
+        const cached = await this.cacheManager.get(cacheKey);
+        if (cached) {
+            return cached;
+        }
         let caja = await this.prisma.caja.findFirst();
         if (!caja) {
             caja = await this.prisma.caja.create({ data: {} });
         }
+        await this.cacheManager.set(cacheKey, caja, 300000);
         return caja;
     }
     async getSummary(from, to) {
+        const cacheKey = `caja:summary:${from ?? 'all'}:${to ?? 'all'}`;
+        const cached = await this.cacheManager.get(cacheKey);
+        if (cached) {
+            return cached;
+        }
         const dateFilter = {
             gte: from ? new Date(from) : undefined,
             lte: to ? new Date(to) : undefined,
@@ -38,18 +54,21 @@ let CajaService = class CajaService {
         let totalProfit = 0;
         const salesWithProfit = sales.map((sale) => {
             const saleTotal = sale.total.toNumber();
-            const costTotal = sale.product.costPrice.toNumber() * sale.quantity;
+            const productName = sale.product?.name ?? 'Producto eliminado';
+            const costPrice = sale.product?.costPrice.toNumber() ?? 0;
+            const costTotal = costPrice * sale.quantity;
             const profit = saleTotal - costTotal;
             totalSales += saleTotal;
             totalProfit += profit;
             return {
                 id: sale.id,
-                productName: sale.product.name,
+                productName,
                 quantity: sale.quantity,
                 unitPrice: sale.unitPrice.toNumber(),
                 total: saleTotal,
-                costPrice: sale.product.costPrice.toNumber(),
+                costPrice,
                 profit,
+                productMissing: sale.product === null,
                 payments: sale.payments.map((p) => ({
                     amount: p.amount.toNumber(),
                     paymentMethod: p.paymentMethod,
@@ -62,7 +81,7 @@ let CajaService = class CajaService {
             orderBy: { createdAt: 'desc' },
         });
         const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount.toNumber(), 0);
-        return {
+        const result = {
             totalSales,
             totalProfit,
             totalExpenses,
@@ -75,21 +94,34 @@ let CajaService = class CajaService {
                 createdAt: exp.createdAt,
             })),
         };
+        await this.cacheManager.set(cacheKey, result, 60000);
+        return result;
     }
     async addExpense(description, amount) {
         await this.getCaja();
-        return this.prisma.expense.create({
+        const result = await this.prisma.expense.create({
             data: { description, amount },
         });
+        await this.cacheManager.del('caja:summary:all:all');
+        await this.cacheManager.del('caja:expenses:all:all');
+        return result;
     }
     async removeExpense(id) {
         const expense = await this.prisma.expense.findUnique({ where: { id } });
         if (!expense)
             throw new NotFoundException(`Gasto ${id} no encontrado`);
-        return this.prisma.expense.delete({ where: { id } });
+        const result = await this.prisma.expense.delete({ where: { id } });
+        await this.cacheManager.del('caja:summary:all:all');
+        await this.cacheManager.del('caja:expenses:all:all');
+        return result;
     }
     async getExpenses(from, to) {
-        return this.prisma.expense.findMany({
+        const cacheKey = `caja:expenses:${from ?? 'all'}:${to ?? 'all'}`;
+        const cached = await this.cacheManager.get(cacheKey);
+        if (cached) {
+            return cached;
+        }
+        const expenses = await this.prisma.expense.findMany({
             where: {
                 createdAt: {
                     gte: from ? new Date(from) : undefined,
@@ -98,11 +130,14 @@ let CajaService = class CajaService {
             },
             orderBy: { createdAt: 'desc' },
         });
+        await this.cacheManager.set(cacheKey, expenses, 60000);
+        return expenses;
     }
 };
 CajaService = __decorate([
     Injectable(),
-    __metadata("design:paramtypes", [PrismaService])
+    __param(1, Inject('CACHE_MANAGER')),
+    __metadata("design:paramtypes", [PrismaService, Object])
 ], CajaService);
 export { CajaService };
 //# sourceMappingURL=caja.service.js.map

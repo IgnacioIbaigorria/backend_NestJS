@@ -7,12 +7,17 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { BadRequestException, Injectable, NotFoundException, } from '@nestjs/common';
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+import { BadRequestException, Injectable, NotFoundException, Inject, } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 let SalesService = class SalesService {
     prisma;
-    constructor(prisma) {
+    cacheManager;
+    constructor(prisma, cacheManager) {
         this.prisma = prisma;
+        this.cacheManager = cacheManager;
     }
     async create(dto) {
         const product = await this.prisma.product.findUnique({
@@ -54,10 +59,19 @@ let SalesService = class SalesService {
                 data: { stock: { decrement: dto.quantity } },
             }),
         ]);
+        await this.cacheManager.del('sales:list:all:all:all');
+        await this.cacheManager.del(`products:${dto.productId}`);
+        await this.cacheManager.del('products:list:all:all');
+        await this.cacheManager.del('products:low-stock');
         return sale;
     }
-    findAll(filters) {
-        return this.prisma.sale.findMany({
+    async findAll(filters) {
+        const cacheKey = `sales:list:${filters?.productId ?? 'all'}:${filters?.from ?? 'all'}:${filters?.to ?? 'all'}`;
+        const cached = await this.cacheManager.get(cacheKey);
+        if (cached) {
+            return cached;
+        }
+        const sales = await this.prisma.sale.findMany({
             where: {
                 productId: filters?.productId,
                 createdAt: {
@@ -68,17 +82,30 @@ let SalesService = class SalesService {
             include: { product: true, payments: true },
             orderBy: { createdAt: 'desc' },
         });
+        await this.cacheManager.set(cacheKey, sales, 60000);
+        return sales;
     }
     async findOne(id) {
+        const cacheKey = `sales:${id}`;
+        const cached = await this.cacheManager.get(cacheKey);
+        if (cached) {
+            return cached;
+        }
         const sale = await this.prisma.sale.findUnique({
             where: { id },
             include: { product: true, payments: true },
         });
         if (!sale)
             throw new NotFoundException(`Venta ${id} no encontrada`);
+        await this.cacheManager.set(cacheKey, sale, 60000);
         return sale;
     }
     async getSummary(from, to) {
+        const cacheKey = `sales:summary:${from ?? 'all'}:${to ?? 'all'}`;
+        const cached = await this.cacheManager.get(cacheKey);
+        if (cached) {
+            return cached;
+        }
         const sales = await this.prisma.sale.findMany({
             where: {
                 createdAt: {
@@ -90,17 +117,20 @@ let SalesService = class SalesService {
         });
         const totalRevenue = sales.reduce((sum, sale) => sum + sale.total.toNumber(), 0);
         const totalItems = sales.reduce((sum, sale) => sum + sale.quantity, 0);
-        return {
+        const result = {
             totalSales: sales.length,
             totalRevenue,
             totalItems,
             sales,
         };
+        await this.cacheManager.set(cacheKey, result, 60000);
+        return result;
     }
 };
 SalesService = __decorate([
     Injectable(),
-    __metadata("design:paramtypes", [PrismaService])
+    __param(1, Inject('CACHE_MANAGER')),
+    __metadata("design:paramtypes", [PrismaService, Object])
 ], SalesService);
 export { SalesService };
 //# sourceMappingURL=sales.service.js.map

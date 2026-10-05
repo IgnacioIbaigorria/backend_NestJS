@@ -11,7 +11,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 import { Controller, Get, Param, Query } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { HistoryService } from './history.service.js';
 let HistoryController = class HistoryController {
     historyService;
@@ -42,6 +42,7 @@ __decorate([
 ], HistoryController.prototype, "findOne", null);
 HistoryController = __decorate([
     ApiTags('history'),
+    ApiBearerAuth(),
     Controller('history'),
     __metadata("design:paramtypes", [HistoryService])
 ], HistoryController);

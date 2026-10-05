@@ -11,7 +11,8 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Roles } from '../auth/auth.decorators.js';
 import { ProductsService } from './products.service.js';
 import { CreateProductDto } from './dto/create-product.dto.js';
 import { UpdateProductDto } from './dto/update-product.dto.js';
@@ -41,6 +42,7 @@ let ProductsController = class ProductsController {
 };
 __decorate([
     Post(),
+    Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER'),
     __param(0, Body()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [CreateProductDto]),
@@ -69,6 +71,7 @@ __decorate([
 ], ProductsController.prototype, "findOne", null);
 __decorate([
     Patch(':id'),
+    Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER'),
     __param(0, Param('id')),
     __param(1, Body()),
     __metadata("design:type", Function),
@@ -77,6 +80,7 @@ __decorate([
 ], ProductsController.prototype, "update", null);
 __decorate([
     Delete(':id'),
+    Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER'),
     __param(0, Param('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -84,6 +88,7 @@ __decorate([
 ], ProductsController.prototype, "remove", null);
 ProductsController = __decorate([
     ApiTags('products'),
+    ApiBearerAuth(),
     Controller('products'),
     __metadata("design:paramtypes", [ProductsService])
 ], ProductsController);

@@ -11,7 +11,8 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 import { Body, Controller, Get, Param, Post, Query, } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Roles } from '../auth/auth.decorators.js';
 import { SalesService } from './sales.service.js';
 import { CreateSaleDto } from './dto/create-sale.dto.js';
 let SalesController = class SalesController {
@@ -34,6 +35,7 @@ let SalesController = class SalesController {
 };
 __decorate([
     Post(),
+    Roles('ADMIN', 'MANAGER', 'SELLER'),
     __param(0, Body()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [CreateSaleDto]),
@@ -65,6 +67,7 @@ __decorate([
 ], SalesController.prototype, "findOne", null);
 SalesController = __decorate([
     ApiTags('sales'),
+    ApiBearerAuth(),
     Controller('sales'),
     __metadata("design:paramtypes", [SalesService])
 ], SalesController);

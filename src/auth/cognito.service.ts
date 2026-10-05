@@ -36,7 +36,7 @@ export class CognitoService {
     try {
       const payload = (await this.verifier.verify(
         token,
-      )) as CognitoAccessTokenPayload;
+      )) as unknown as CognitoAccessTokenPayload;
 
       return {
         sub: payload.sub,

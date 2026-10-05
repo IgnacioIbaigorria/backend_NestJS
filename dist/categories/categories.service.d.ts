@@ -1,49 +1,20 @@
+import type { Cache } from 'cache-manager';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateCategoryDto } from './dto/create-category.dto.js';
 import { UpdateCategoryDto } from './dto/update-category.dto.js';
 export declare class CategoriesService {
     private prisma;
-    constructor(prisma: PrismaService);
-    create(dto: CreateCategoryDto): import("../generated/prisma/models.js").Prisma__CategoryClient<{
-        id: string;
-        name: string;
-        description: string | null;
-        createdAt: Date;
-        updatedAt: Date;
-    }, never, import("@prisma/client/runtime/client").DefaultArgs, {
-        omit: import("../generated/prisma/internal/prismaNamespace.js").GlobalOmitConfig | undefined;
-    }>;
-    findAll(): import("../generated/prisma/internal/prismaNamespace.js").PrismaPromise<({
-        _count: {
-            products: number;
-        };
-    } & {
-        id: string;
-        name: string;
-        description: string | null;
-        createdAt: Date;
-        updatedAt: Date;
-    })[]>;
-    findOne(id: string): Promise<{
-        products: {
-            id: string;
-            name: string;
-            description: string | null;
-            createdAt: Date;
-            updatedAt: Date;
-            price: import("@prisma/client-runtime-utils").Decimal;
-            costPrice: import("@prisma/client-runtime-utils").Decimal;
-            stock: number;
-            minStock: number;
-            categoryId: string | null;
-        }[];
-    } & {
+    private cacheManager;
+    constructor(prisma: PrismaService, cacheManager: Cache);
+    create(dto: CreateCategoryDto): Promise<{
         id: string;
         name: string;
         description: string | null;
         createdAt: Date;
         updatedAt: Date;
     }>;
+    findAll(): Promise<{}>;
+    findOne(id: string): Promise<{}>;
     update(id: string, dto: UpdateCategoryDto): Promise<{
         id: string;
         name: string;

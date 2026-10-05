@@ -11,7 +11,8 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 import { Body, Controller, Delete, Get, Param, Patch, Post, } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Roles } from '../auth/auth.decorators.js';
 import { CategoriesService } from './categories.service.js';
 import { CreateCategoryDto } from './dto/create-category.dto.js';
 import { UpdateCategoryDto } from './dto/update-category.dto.js';
@@ -38,6 +39,7 @@ let CategoriesController = class CategoriesController {
 };
 __decorate([
     Post(),
+    Roles('ADMIN', 'MANAGER'),
     __param(0, Body()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [CreateCategoryDto]),
@@ -58,6 +60,7 @@ __decorate([
 ], CategoriesController.prototype, "findOne", null);
 __decorate([
     Patch(':id'),
+    Roles('ADMIN', 'MANAGER'),
     __param(0, Param('id')),
     __param(1, Body()),
     __metadata("design:type", Function),
@@ -66,6 +69,7 @@ __decorate([
 ], CategoriesController.prototype, "update", null);
 __decorate([
     Delete(':id'),
+    Roles('ADMIN', 'MANAGER'),
     __param(0, Param('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -73,6 +77,7 @@ __decorate([
 ], CategoriesController.prototype, "remove", null);
 CategoriesController = __decorate([
     ApiTags('categories'),
+    ApiBearerAuth(),
     Controller('categories'),
     __metadata("design:paramtypes", [CategoriesService])
 ], CategoriesController);

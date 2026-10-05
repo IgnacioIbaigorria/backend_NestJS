@@ -11,7 +11,8 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 import { Body, Controller, Delete, Get, Param, Post, Query, } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Roles } from '../auth/auth.decorators.js';
 import { CajaService } from './caja.service.js';
 import { CreateExpenseDto } from './dto/create-expense.dto.js';
 let CajaController = class CajaController {
@@ -59,6 +60,7 @@ __decorate([
 ], CajaController.prototype, "getExpenses", null);
 __decorate([
     Post('expenses'),
+    Roles('ADMIN', 'MANAGER'),
     __param(0, Body()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [CreateExpenseDto]),
@@ -66,6 +68,7 @@ __decorate([
 ], CajaController.prototype, "addExpense", null);
 __decorate([
     Delete('expenses/:id'),
+    Roles('ADMIN', 'MANAGER'),
     __param(0, Param('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -73,6 +76,7 @@ __decorate([
 ], CajaController.prototype, "removeExpense", null);
 CajaController = __decorate([
     ApiTags('caja'),
+    ApiBearerAuth(),
     Controller('caja'),
     __metadata("design:paramtypes", [CajaService])
 ], CajaController);

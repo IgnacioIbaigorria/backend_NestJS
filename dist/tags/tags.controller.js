@@ -11,7 +11,8 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 import { Body, Controller, Delete, Get, Param, Patch, Post, } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Roles } from '../auth/auth.decorators.js';
 import { TagsService } from './tags.service.js';
 import { CreateTagDto } from './dto/create-tag.dto.js';
 import { UpdateTagDto } from './dto/update-tag.dto.js';
@@ -38,6 +39,7 @@ let TagsController = class TagsController {
 };
 __decorate([
     Post(),
+    Roles('ADMIN', 'MANAGER'),
     __param(0, Body()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [CreateTagDto]),
@@ -58,6 +60,7 @@ __decorate([
 ], TagsController.prototype, "findOne", null);
 __decorate([
     Patch(':id'),
+    Roles('ADMIN', 'MANAGER'),
     __param(0, Param('id')),
     __param(1, Body()),
     __metadata("design:type", Function),
@@ -66,6 +69,7 @@ __decorate([
 ], TagsController.prototype, "update", null);
 __decorate([
     Delete(':id'),
+    Roles('ADMIN', 'MANAGER'),
     __param(0, Param('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -73,6 +77,7 @@ __decorate([
 ], TagsController.prototype, "remove", null);
 TagsController = __decorate([
     ApiTags('tags'),
+    ApiBearerAuth(),
     Controller('tags'),
     __metadata("design:paramtypes", [TagsService])
 ], TagsController);

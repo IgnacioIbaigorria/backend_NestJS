@@ -11,7 +11,8 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 import { Body, Controller, Get, Param, Post, Query, } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Roles } from '../auth/auth.decorators.js';
 import { ReposicionService } from './reposicion.service.js';
 import { CreateReposicionDto } from './dto/create-reposicion.dto.js';
 let ReposicionController = class ReposicionController {
@@ -31,6 +32,7 @@ let ReposicionController = class ReposicionController {
 };
 __decorate([
     Post(),
+    Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER'),
     __param(0, Body()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [CreateReposicionDto]),
@@ -52,6 +54,7 @@ __decorate([
 ], ReposicionController.prototype, "findOne", null);
 ReposicionController = __decorate([
     ApiTags('reposicion'),
+    ApiBearerAuth(),
     Controller('reposicion'),
     __metadata("design:paramtypes", [ReposicionService])
 ], ReposicionController);

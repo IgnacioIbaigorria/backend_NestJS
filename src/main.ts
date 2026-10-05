@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module.js';
+import { AllExceptionsFilter } from './common/filters/http-exception.filter.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -14,6 +15,9 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  // Manejo global de errores
+  app.useGlobalFilters(new AllExceptionsFilter());
 
   // Permite consumir la API desde clientes autorizados.
   app.enableCors();

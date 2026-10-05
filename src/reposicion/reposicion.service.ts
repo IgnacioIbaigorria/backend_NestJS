@@ -1,10 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject } from '@nestjs/common';
+import type { Cache } from 'cache-manager';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateReposicionDto } from './dto/create-reposicion.dto.js';
 
 @Injectable()
 export class ReposicionService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject('CACHE_MANAGER') private cacheManager: Cache,
+  ) {}
 
   async create(dto: CreateReposicionDto) {
     const product = await this.prisma.product.findUnique({
@@ -23,18 +27,41 @@ export class ReposicionService {
       }),
     ]);
 
+    // Invalidar cache de productos y reposiciones
+    await this.cacheManager.del(`products:${dto.productId}`);
+    await this.cacheManager.del('products:list:all:all');
+    await this.cacheManager.del('products:low-stock');
+    await this.cacheManager.del('reposicion:list:all');
+
     return reposicion;
   }
 
-  findAll(filters?: { productId?: string }) {
-    return this.prisma.reposicion.findMany({
+  async findAll(filters?: { productId?: string }) {
+    const cacheKey = `reposicion:list:${filters?.productId ?? 'all'}`;
+    
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    const reposiciones = await this.prisma.reposicion.findMany({
       where: { productId: filters?.productId },
       include: { product: true },
       orderBy: { createdAt: 'desc' },
     });
+
+    await this.cacheManager.set(cacheKey, reposiciones, 60000); // 60 segundos
+    return reposiciones;
   }
 
   async findOne(id: string) {
+    const cacheKey = `reposicion:${id}`;
+    
+    const cached = await this.cacheManager.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const reposicion = await this.prisma.reposicion.findUnique({
       where: { id },
       include: { product: true },
@@ -42,6 +69,8 @@ export class ReposicionService {
     if (!reposicion) {
       throw new NotFoundException(`Reposición ${id} no encontrada`);
     }
+
+    await this.cacheManager.set(cacheKey, reposicion, 60000); // 60 segundos
     return reposicion;
   }
 }

@@ -13,11 +13,16 @@ import { SalesModule } from './sales/sales.module.js';
 import { CajaModule } from './caja/caja.module.js';
 import { ReposicionModule } from './reposicion/reposicion.module.js';
 import { HistoryModule } from './history/history.module.js';
+import { AuthModule } from './auth/auth.module.js';
+import { AppCacheModule } from './cache/cache.module.js';
+import { HealthModule } from './health/health.module.js';
 let AppModule = class AppModule {
 };
 AppModule = __decorate([
     Module({
         imports: [
+            AppCacheModule,
+            AuthModule,
             PrismaModule,
             ProductsModule,
             CategoriesModule,
@@ -26,6 +31,7 @@ AppModule = __decorate([
             CajaModule,
             ReposicionModule,
             HistoryModule,
+            HealthModule,
         ],
     })
 ], AppModule);
