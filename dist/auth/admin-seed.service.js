@@ -71,28 +71,28 @@ let AdminSeedService = AdminSeedService_1 = class AdminSeedService {
         }
         try {
             await this.client.send(new CreateGroupCommand({
-                GroupName: 'admin',
+                GroupName: 'ADMIN',
                 UserPoolId: this.userPoolId,
                 Description: 'Grupo de administradores del sistema',
             }));
-            this.logger.log(`Grupo 'admin' creado exitosamente`);
+            this.logger.log(`Grupo 'ADMIN' creado exitosamente`);
         }
         catch (error) {
             if (error instanceof Error &&
                 error.name === 'GroupExistsException') {
-                this.logger.log(`Grupo 'admin' ya existe`);
+                this.logger.log(`Grupo 'ADMIN' ya existe`);
             }
             else {
-                this.logger.warn(`No se pudo crear el grupo 'admin': ${error instanceof Error ? error.message : 'Error desconocido'}`);
+                this.logger.warn(`No se pudo crear el grupo 'ADMIN': ${error instanceof Error ? error.message : 'Error desconocido'}`);
             }
         }
         try {
             await this.client.send(new AdminAddUserToGroupCommand({
                 UserPoolId: this.userPoolId,
                 Username: this.adminUsername,
-                GroupName: 'admin',
+                GroupName: 'ADMIN',
             }));
-            this.logger.log(`Usuario '${this.adminUsername}' asignado al grupo 'admin'`);
+            this.logger.log(`Usuario '${this.adminUsername}' asignado al grupo 'ADMIN'`);
         }
         catch (error) {
             if (error instanceof Error &&
@@ -100,7 +100,7 @@ let AdminSeedService = AdminSeedService_1 = class AdminSeedService {
                 this.logger.warn(`No se pudo asignar el grupo: usuario '${this.adminUsername}' no encontrado`);
             }
             else {
-                this.logger.warn(`No se pudo asignar el grupo 'admin': ${error instanceof Error ? error.message : 'Error desconocido'}`);
+                this.logger.warn(`No se pudo asignar el grupo 'ADMIN': ${error instanceof Error ? error.message : 'Error desconocido'}`);
             }
         }
     }

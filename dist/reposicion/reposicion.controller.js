@@ -40,6 +40,7 @@ __decorate([
 ], ReposicionController.prototype, "create", null);
 __decorate([
     Get(),
+    Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER'),
     __param(0, Query('productId')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -47,6 +48,7 @@ __decorate([
 ], ReposicionController.prototype, "findAll", null);
 __decorate([
     Get(':id'),
+    Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER'),
     __param(0, Param('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),

@@ -132,7 +132,7 @@ let ProductsService = class ProductsService {
                 ['categoryId', currentProduct.categoryId, updatedProduct.categoryId],
                 ['tagIds', oldTags, newTags],
             ];
-            const changes = possibleChanges.filter(([field, oldValue, newValue]) => oldValue !== newValue);
+            const changes = possibleChanges.filter(([_field, oldValue, newValue]) => oldValue !== newValue);
             if (changes.length > 0) {
                 await tx.productHistory.createMany({
                     data: changes.map(([field, oldValue, newValue]) => ({

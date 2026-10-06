@@ -1,9 +1,11 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Roles } from '../auth/auth.decorators.js';
 import { HistoryService } from './history.service.js';
 
 @ApiTags('history')
 @ApiBearerAuth()
+@Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER')
 @Controller('history')
 export class HistoryController {
   constructor(private readonly historyService: HistoryService) {}

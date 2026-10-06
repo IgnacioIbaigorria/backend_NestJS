@@ -12,6 +12,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 };
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Roles } from '../auth/auth.decorators.js';
 import { HistoryService } from './history.service.js';
 let HistoryController = class HistoryController {
     historyService;
@@ -43,6 +44,7 @@ __decorate([
 HistoryController = __decorate([
     ApiTags('history'),
     ApiBearerAuth(),
+    Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER'),
     Controller('history'),
     __metadata("design:paramtypes", [HistoryService])
 ], HistoryController);

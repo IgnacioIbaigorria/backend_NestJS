@@ -12,17 +12,20 @@ import { CognitoBffService } from './cognito-bff.service.js';
 import { RolesGuard } from './roles.guard.js';
 import { AuthController } from './auth.controller.js';
 import { AdminSeedService } from './admin-seed.service.js';
+import { UsersController } from './users.controller.js';
+import { UsersService } from './users.service.js';
 let AuthModule = class AuthModule {
 };
 AuthModule = __decorate([
     Module({
-        controllers: [AuthController],
+        controllers: [AuthController, UsersController],
         providers: [
             CognitoService,
             CognitoBffService,
             CognitoAuthGuard,
             RolesGuard,
             AdminSeedService,
+            UsersService,
             {
                 provide: APP_GUARD,
                 useExisting: CognitoAuthGuard,
