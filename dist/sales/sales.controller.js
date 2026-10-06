@@ -43,6 +43,7 @@ __decorate([
 ], SalesController.prototype, "create", null);
 __decorate([
     Get(),
+    Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER', 'SELLER', 'GUEST'),
     __param(0, Query('productId')),
     __param(1, Query('from')),
     __param(2, Query('to')),
@@ -52,6 +53,7 @@ __decorate([
 ], SalesController.prototype, "findAll", null);
 __decorate([
     Get('summary'),
+    Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER', 'SELLER', 'GUEST'),
     __param(0, Query('from')),
     __param(1, Query('to')),
     __metadata("design:type", Function),
@@ -60,6 +62,7 @@ __decorate([
 ], SalesController.prototype, "getSummary", null);
 __decorate([
     Get(':id'),
+    Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER', 'SELLER', 'GUEST'),
     __param(0, Param('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),

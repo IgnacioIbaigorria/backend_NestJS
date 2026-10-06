@@ -15,6 +15,7 @@ export const COGNITO_ROLES = [
     'SELLER',
     'INVENTORY_MANAGER',
     'AUDITOR',
+    'GUEST',
 ];
 export class CreateUserDto {
     username;

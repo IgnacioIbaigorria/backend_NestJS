@@ -27,6 +27,7 @@ export class ProductsController {
   }
 
   @Get()
+  @Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER', 'SELLER', 'GUEST')
   findAll(
     @Query('categoryId') categoryId?: string,
     @Query('search') search?: string,
@@ -35,11 +36,13 @@ export class ProductsController {
   }
 
   @Get('low-stock')
+  @Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER', 'GUEST')
   findLowStock() {
     return this.productsService.findLowStock();
   }
 
   @Get(':id')
+  @Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER', 'SELLER', 'GUEST')
   findOne(@Param('id') id: string) {
     return this.productsService.findOne(id);
   }

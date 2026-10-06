@@ -24,6 +24,7 @@ export class SalesController {
   }
 
   @Get()
+  @Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER', 'SELLER', 'GUEST')
   findAll(
     @Query('productId') productId?: string,
     @Query('from') from?: string,
@@ -33,6 +34,7 @@ export class SalesController {
   }
 
   @Get('summary')
+  @Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER', 'SELLER', 'GUEST')
   getSummary(
     @Query('from') from?: string,
     @Query('to') to?: string,
@@ -41,6 +43,7 @@ export class SalesController {
   }
 
   @Get(':id')
+  @Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER', 'SELLER', 'GUEST')
   findOne(@Param('id') id: string) {
     return this.salesService.findOne(id);
   }

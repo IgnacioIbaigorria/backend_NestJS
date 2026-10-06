@@ -44,7 +44,7 @@ __decorate([
 HistoryController = __decorate([
     ApiTags('history'),
     ApiBearerAuth(),
-    Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER'),
+    Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER', 'GUEST'),
     Controller('history'),
     __metadata("design:paramtypes", [HistoryService])
 ], HistoryController);

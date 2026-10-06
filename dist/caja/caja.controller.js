@@ -38,14 +38,14 @@ let CajaController = class CajaController {
 };
 __decorate([
     Get(),
-    Roles('ADMIN', 'MANAGER'),
+    Roles('ADMIN', 'MANAGER', 'GUEST'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], CajaController.prototype, "getCaja", null);
 __decorate([
     Get('summary'),
-    Roles('ADMIN', 'MANAGER'),
+    Roles('ADMIN', 'MANAGER', 'GUEST'),
     __param(0, Query('from')),
     __param(1, Query('to')),
     __metadata("design:type", Function),
@@ -54,7 +54,7 @@ __decorate([
 ], CajaController.prototype, "getSummary", null);
 __decorate([
     Get('expenses'),
-    Roles('ADMIN', 'MANAGER'),
+    Roles('ADMIN', 'MANAGER', 'GUEST'),
     __param(0, Query('from')),
     __param(1, Query('to')),
     __metadata("design:type", Function),

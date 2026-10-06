@@ -26,11 +26,13 @@ export class TagsController {
   }
 
   @Get()
+  @Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER', 'SELLER', 'GUEST')
   findAll() {
     return this.tagsService.findAll();
   }
 
   @Get(':id')
+  @Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER', 'SELLER', 'GUEST')
   findOne(@Param('id') id: string) {
     return this.tagsService.findOne(id);
   }

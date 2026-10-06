@@ -19,13 +19,13 @@ export class CajaController {
   constructor(private readonly cajaService: CajaService) {}
 
   @Get()
-  @Roles('ADMIN', 'MANAGER')
+  @Roles('ADMIN', 'MANAGER', 'GUEST')
   getCaja() {
     return this.cajaService.getCaja();
   }
 
   @Get('summary')
-  @Roles('ADMIN', 'MANAGER')
+  @Roles('ADMIN', 'MANAGER', 'GUEST')
   getSummary(
     @Query('from') from?: string,
     @Query('to') to?: string,
@@ -34,7 +34,7 @@ export class CajaController {
   }
 
   @Get('expenses')
-  @Roles('ADMIN', 'MANAGER')
+  @Roles('ADMIN', 'MANAGER', 'GUEST')
   getExpenses(
     @Query('from') from?: string,
     @Query('to') to?: string,

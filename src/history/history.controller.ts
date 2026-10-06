@@ -5,7 +5,7 @@ import { HistoryService } from './history.service.js';
 
 @ApiTags('history')
 @ApiBearerAuth()
-@Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER')
+@Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER', 'GUEST')
 @Controller('history')
 export class HistoryController {
   constructor(private readonly historyService: HistoryService) {}

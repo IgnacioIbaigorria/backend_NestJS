@@ -50,6 +50,7 @@ __decorate([
 ], ProductsController.prototype, "create", null);
 __decorate([
     Get(),
+    Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER', 'SELLER', 'GUEST'),
     __param(0, Query('categoryId')),
     __param(1, Query('search')),
     __metadata("design:type", Function),
@@ -58,12 +59,14 @@ __decorate([
 ], ProductsController.prototype, "findAll", null);
 __decorate([
     Get('low-stock'),
+    Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER', 'GUEST'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", void 0)
 ], ProductsController.prototype, "findLowStock", null);
 __decorate([
     Get(':id'),
+    Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER', 'SELLER', 'GUEST'),
     __param(0, Param('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),

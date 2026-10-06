@@ -24,13 +24,13 @@ export class ReposicionController {
   }
 
   @Get()
-  @Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER')
+  @Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER', 'GUEST')
   findAll(@Query('productId') productId?: string) {
     return this.reposicionService.findAll({ productId });
   }
 
   @Get(':id')
-  @Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER')
+  @Roles('ADMIN', 'MANAGER', 'INVENTORY_MANAGER', 'GUEST')
   findOne(@Param('id') id: string) {
     return this.reposicionService.findOne(id);
   }
