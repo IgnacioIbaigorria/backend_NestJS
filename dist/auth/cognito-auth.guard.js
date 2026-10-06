@@ -9,12 +9,23 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 import { Injectable, UnauthorizedException, } from '@nestjs/common';
 import { CognitoService } from './cognito.service.js';
+import { IS_PUBLIC_KEY } from './auth.decorators.js';
+import { Reflector } from '@nestjs/core';
 let CognitoAuthGuard = class CognitoAuthGuard {
     cognitoService;
-    constructor(cognitoService) {
+    reflector;
+    constructor(cognitoService, reflector) {
         this.cognitoService = cognitoService;
+        this.reflector = reflector;
     }
     async canActivate(context) {
+        const isPublic = this.reflector.getAllAndOverride(IS_PUBLIC_KEY, [
+            context.getHandler(),
+            context.getClass(),
+        ]);
+        if (isPublic) {
+            return true;
+        }
         const request = context.switchToHttp().getRequest();
         const authorization = request.headers.authorization;
         if (!authorization?.startsWith('Bearer ')) {
@@ -30,7 +41,8 @@ let CognitoAuthGuard = class CognitoAuthGuard {
 };
 CognitoAuthGuard = __decorate([
     Injectable(),
-    __metadata("design:paramtypes", [CognitoService])
+    __metadata("design:paramtypes", [CognitoService,
+        Reflector])
 ], CognitoAuthGuard);
 export { CognitoAuthGuard };
 //# sourceMappingURL=cognito-auth.guard.js.map

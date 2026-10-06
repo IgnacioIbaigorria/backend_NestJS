@@ -13,6 +13,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CognitoBffService } from './cognito-bff.service.js';
+import { Public } from './auth.decorators.js';
 class LoginDto {
     username;
     password;
@@ -33,6 +34,7 @@ let AuthController = class AuthController {
     }
 };
 __decorate([
+    Public(),
     Post('login'),
     HttpCode(HttpStatus.OK),
     ApiOperation({ summary: 'Iniciar sesión con usuario y contraseña' }),
@@ -42,6 +44,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "login", null);
 __decorate([
+    Public(),
     Post('refresh'),
     HttpCode(HttpStatus.OK),
     ApiOperation({ summary: 'Renovar access token con refresh token' }),
