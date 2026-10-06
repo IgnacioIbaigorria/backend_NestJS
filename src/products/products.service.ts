@@ -145,7 +145,7 @@ export class ProductsService {
         ['tagIds', oldTags, newTags],
       ];
       const changes = possibleChanges.filter(
-        ([field, oldValue, newValue]) => oldValue !== newValue,
+        ([_field, oldValue, newValue]) => oldValue !== newValue,
       );
 
       if (changes.length > 0) {

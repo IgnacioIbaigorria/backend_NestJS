@@ -66,7 +66,7 @@ export class UsersService {
   async create(dto: CreateUserDto): Promise<UserResponse> {
     let userCreated = false;
     try {
-      const created = await this.client.send(
+      await this.client.send(
         new AdminCreateUserCommand({
           UserPoolId: this.userPoolId,
           Username: dto.username,
