@@ -14,10 +14,21 @@ import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CognitoBffService } from './cognito-bff.service.js';
 import { Public } from './auth.decorators.js';
+import { IsNotEmpty, IsString } from 'class-validator';
 class LoginDto {
     username;
     password;
 }
+__decorate([
+    IsString(),
+    IsNotEmpty(),
+    __metadata("design:type", String)
+], LoginDto.prototype, "username", void 0);
+__decorate([
+    IsString(),
+    IsNotEmpty(),
+    __metadata("design:type", String)
+], LoginDto.prototype, "password", void 0);
 class RefreshDto {
     refreshToken;
 }

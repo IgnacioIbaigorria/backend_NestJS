@@ -7,9 +7,11 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+var CognitoBffService_1;
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { CognitoIdentityProviderClient, InitiateAuthCommand, } from '@aws-sdk/client-cognito-identity-provider';
-let CognitoBffService = class CognitoBffService {
+let CognitoBffService = CognitoBffService_1 = class CognitoBffService {
+    logger = new Logger(CognitoBffService_1.name);
     client;
     clientId;
     clientSecret;
@@ -54,6 +56,7 @@ let CognitoBffService = class CognitoBffService {
             if (error instanceof UnauthorizedException) {
                 throw error;
             }
+            this.logger.error(`Login fallido para '${username}': ${error instanceof Error ? error.message : JSON.stringify(error)}`, error instanceof Error ? error.stack : undefined);
             throw new UnauthorizedException('Credenciales inválidas');
         }
     }
@@ -91,7 +94,7 @@ let CognitoBffService = class CognitoBffService {
         }
     }
 };
-CognitoBffService = __decorate([
+CognitoBffService = CognitoBffService_1 = __decorate([
     Injectable(),
     __metadata("design:paramtypes", [])
 ], CognitoBffService);

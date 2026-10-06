@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import {
   CognitoIdentityProviderClient,
   InitiateAuthCommand,
@@ -16,6 +16,7 @@ export interface LoginResponse {
 
 @Injectable()
 export class CognitoBffService {
+  private readonly logger = new Logger(CognitoBffService.name);
   private readonly client: CognitoIdentityProviderClient;
   private readonly clientId: string;
   private readonly clientSecret: string;
@@ -71,6 +72,10 @@ export class CognitoBffService {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
+      this.logger.error(
+        `Login fallido para '${username}': ${error instanceof Error ? error.message : JSON.stringify(error)}`,
+        error instanceof Error ? error.stack : undefined,
+      );
       throw new UnauthorizedException('Credenciales inválidas');
     }
   }

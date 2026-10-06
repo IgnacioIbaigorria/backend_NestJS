@@ -6,6 +6,7 @@ export interface LoginResponse {
     tokenType: string;
 }
 export declare class CognitoBffService {
+    private readonly logger;
     private readonly client;
     private readonly clientId;
     private readonly clientSecret;
