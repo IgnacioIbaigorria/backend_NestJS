@@ -9,6 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 var CognitoBffService_1;
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { createHmac } from 'crypto';
 import { CognitoIdentityProviderClient, InitiateAuthCommand, } from '@aws-sdk/client-cognito-identity-provider';
 let CognitoBffService = CognitoBffService_1 = class CognitoBffService {
     logger = new Logger(CognitoBffService_1.name);
@@ -25,6 +26,11 @@ let CognitoBffService = CognitoBffService_1 = class CognitoBffService {
             region: process.env.AWS_REGION ?? 'us-east-1',
         });
     }
+    computeSecretHash(username) {
+        return createHmac('sha256', this.clientSecret)
+            .update(username + this.clientId)
+            .digest('base64');
+    }
     async login(username, password) {
         const params = {
             AuthFlow: 'USER_PASSWORD_AUTH',
@@ -32,6 +38,7 @@ let CognitoBffService = CognitoBffService_1 = class CognitoBffService {
             AuthParameters: {
                 USERNAME: username,
                 PASSWORD: password,
+                SECRET_HASH: this.computeSecretHash(username),
             },
         };
         try {
@@ -60,12 +67,13 @@ let CognitoBffService = CognitoBffService_1 = class CognitoBffService {
             throw new UnauthorizedException('Credenciales inválidas');
         }
     }
-    async refreshToken(refreshToken) {
+    async refreshToken(refreshToken, username) {
         const params = {
             AuthFlow: 'REFRESH_TOKEN_AUTH',
             ClientId: this.clientId,
             AuthParameters: {
                 REFRESH_TOKEN: refreshToken,
+                SECRET_HASH: this.computeSecretHash(username),
             },
         };
         try {

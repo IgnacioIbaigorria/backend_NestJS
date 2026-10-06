@@ -14,7 +14,13 @@ class LoginDto {
   password: string;
 }
 class RefreshDto {
+  @IsString()
+  @IsNotEmpty()
   refreshToken: string;
+
+  @IsString()
+  @IsNotEmpty()
+  username: string;
 }
 
 @ApiTags('auth')
@@ -35,6 +41,6 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Renovar access token con refresh token' })
   async refresh(@Body() dto: RefreshDto) {
-    return this.cognitoBffService.refreshToken(dto.refreshToken);
+    return this.cognitoBffService.refreshToken(dto.refreshToken, dto.username);
   }
 }

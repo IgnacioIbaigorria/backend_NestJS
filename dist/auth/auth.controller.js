@@ -31,7 +31,18 @@ __decorate([
 ], LoginDto.prototype, "password", void 0);
 class RefreshDto {
     refreshToken;
+    username;
 }
+__decorate([
+    IsString(),
+    IsNotEmpty(),
+    __metadata("design:type", String)
+], RefreshDto.prototype, "refreshToken", void 0);
+__decorate([
+    IsString(),
+    IsNotEmpty(),
+    __metadata("design:type", String)
+], RefreshDto.prototype, "username", void 0);
 let AuthController = class AuthController {
     cognitoBffService;
     constructor(cognitoBffService) {
@@ -41,7 +52,7 @@ let AuthController = class AuthController {
         return this.cognitoBffService.login(dto.username, dto.password);
     }
     async refresh(dto) {
-        return this.cognitoBffService.refreshToken(dto.refreshToken);
+        return this.cognitoBffService.refreshToken(dto.refreshToken, dto.username);
     }
 };
 __decorate([

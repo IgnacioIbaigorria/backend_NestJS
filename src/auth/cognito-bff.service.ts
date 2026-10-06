@@ -1,4 +1,5 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { createHmac } from 'crypto';
 import {
   CognitoIdentityProviderClient,
   InitiateAuthCommand,
@@ -36,6 +37,16 @@ export class CognitoBffService {
     });
   }
 
+  /**
+   * Calcula SECRET_HASH requerido por Cognito cuando el App Client tiene client secret.
+   * HMAC-SHA256(client_secret, username + client_id) en base64.
+   */
+  private computeSecretHash(username: string): string {
+    return createHmac('sha256', this.clientSecret)
+      .update(username + this.clientId)
+      .digest('base64');
+  }
+
   async login(username: string, password: string): Promise<LoginResponse> {
     const params: InitiateAuthCommandInput = {
       AuthFlow: 'USER_PASSWORD_AUTH',
@@ -43,6 +54,7 @@ export class CognitoBffService {
       AuthParameters: {
         USERNAME: username,
         PASSWORD: password,
+        SECRET_HASH: this.computeSecretHash(username),
       },
     };
 
@@ -80,12 +92,16 @@ export class CognitoBffService {
     }
   }
 
-  async refreshToken(refreshToken: string): Promise<LoginResponse> {
+  async refreshToken(
+    refreshToken: string,
+    username: string,
+  ): Promise<LoginResponse> {
     const params: InitiateAuthCommandInput = {
       AuthFlow: 'REFRESH_TOKEN_AUTH',
       ClientId: this.clientId,
       AuthParameters: {
         REFRESH_TOKEN: refreshToken,
+        SECRET_HASH: this.computeSecretHash(username),
       },
     };
 

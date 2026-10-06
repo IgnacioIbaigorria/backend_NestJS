@@ -5,6 +5,7 @@ declare class LoginDto {
 }
 declare class RefreshDto {
     refreshToken: string;
+    username: string;
 }
 export declare class AuthController {
     private readonly cognitoBffService;
