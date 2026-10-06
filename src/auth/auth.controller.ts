@@ -2,12 +2,17 @@ import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CognitoBffService } from './cognito-bff.service.js';
 import { Public } from './auth.decorators.js';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 class LoginDto {
+  @IsString()
+  @IsNotEmpty()
   username: string;
+
+  @IsString()
+  @IsNotEmpty()
   password: string;
 }
-
 class RefreshDto {
   refreshToken: string;
 }
@@ -15,7 +20,7 @@ class RefreshDto {
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly cognitoBffService: CognitoBffService) {}
+  constructor(private readonly cognitoBffService: CognitoBffService) { }
 
   @Public()
   @Post('login')
