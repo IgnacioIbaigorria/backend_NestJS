@@ -3,11 +3,21 @@ import {
   IsEmail,
   IsNotEmpty,
   IsOptional,
+  IsIn,
+  IsArray,
   IsString,
   Length,
   Matches,
   MaxLength,
 } from 'class-validator';
+
+export const COGNITO_ROLES = [
+  'ADMIN',
+  'MANAGER',
+  'SELLER',
+  'INVENTORY_MANAGER',
+  'AUDITOR',
+] as const;
 
 export class CreateUserDto {
   @ApiProperty({ example: 'vendedor01' })
@@ -56,4 +66,14 @@ export class CreateUserDto {
   @IsString()
   @MaxLength(20)
   phoneNumber?: string;
+
+  @ApiPropertyOptional({
+    example: ['SELLER'],
+    enum: COGNITO_ROLES,
+    isArray: true,
+  })
+  @IsOptional()
+  @IsArray()
+  @IsIn(COGNITO_ROLES, { each: true })
+  roles?: string[];
 }

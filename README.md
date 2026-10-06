@@ -110,9 +110,14 @@ sin enviar una invitación, se usa `POST /users`:
   "username": "vendedor01",
   "password": "UnaClaveSegura1!",
   "email": "vendedor01@puntoeco.com",
-  "name": "Vendedor PuntoEco"
+  "name": "Vendedor PuntoEco",
+  "roles": ["SELLER"]
 }
 ```
+
+Los roles disponibles son `ADMIN`, `MANAGER`, `SELLER`, `INVENTORY_MANAGER` y
+`AUDITOR`. En `PATCH /users/:username`, enviar `roles` reemplaza completamente
+los roles actuales del usuario; enviar una lista vacía los elimina todos.
 
 ### Configuración de Cognito
 

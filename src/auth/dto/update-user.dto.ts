@@ -1,5 +1,14 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsEmail, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsEmail,
+  IsIn,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
+import { COGNITO_ROLES } from './create-user.dto.js';
 
 export class UpdateUserDto {
   @ApiPropertyOptional({ example: 'usuario@puntoeco.com' })
@@ -23,4 +32,15 @@ export class UpdateUserDto {
   @IsOptional()
   @IsBoolean()
   enabled?: boolean;
+
+  @ApiPropertyOptional({
+    example: ['MANAGER'],
+    enum: COGNITO_ROLES,
+    isArray: true,
+    description: 'Reemplaza completamente los roles actuales del usuario',
+  })
+  @IsOptional()
+  @IsArray()
+  @IsIn(COGNITO_ROLES, { each: true })
+  roles?: string[];
 }

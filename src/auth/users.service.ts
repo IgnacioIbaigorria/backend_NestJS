@@ -12,6 +12,9 @@ import {
   AdminDisableUserCommand,
   AdminEnableUserCommand,
   AdminGetUserCommand,
+  AdminAddUserToGroupCommand,
+  AdminListGroupsForUserCommand,
+  AdminRemoveUserFromGroupCommand,
   AdminSetUserPasswordCommand,
   AdminUpdateUserAttributesCommand,
   CognitoIdentityProviderClient,
@@ -31,6 +34,7 @@ type UserResponse = {
   createdAt?: Date;
   lastModifiedAt?: Date;
   attributes: Record<string, string>;
+  roles: string[];
 };
 
 type CognitoUserLike = {
@@ -60,6 +64,7 @@ export class UsersService {
   }
 
   async create(dto: CreateUserDto): Promise<UserResponse> {
+    let userCreated = false;
     try {
       const created = await this.client.send(
         new AdminCreateUserCommand({
@@ -70,6 +75,7 @@ export class UsersService {
           UserAttributes: this.toAttributes(dto),
         }),
       );
+      userCreated = true;
 
       try {
         await this.client.send(
@@ -87,11 +93,21 @@ export class UsersService {
             Username: dto.username,
           }),
         );
+        userCreated = false;
         throw error;
       }
 
-      return this.toResponse(created.User);
+      await this.replaceRoles(dto.username, dto.roles ?? []);
+      return this.findOne(dto.username);
     } catch (error) {
+      if (userCreated) {
+        await this.client.send(
+          new AdminDeleteUserCommand({
+            UserPoolId: this.userPoolId,
+            Username: dto.username,
+          }),
+        );
+      }
       this.handleCognitoError(error, dto.username);
     }
   }
@@ -107,7 +123,9 @@ export class UsersService {
       );
 
       return {
-        users: (response.Users ?? []).map((user) => this.toResponse(user)),
+        users: await Promise.all(
+          (response.Users ?? []).map((user) => this.toResponseWithRoles(user)),
+        ),
         nextToken: response.PaginationToken,
       };
     } catch (error) {
@@ -124,7 +142,7 @@ export class UsersService {
         }),
       );
 
-      return this.toResponse(response);
+      return this.toResponseWithRoles(response);
     } catch (error) {
       this.handleCognitoError(error, username);
     }
@@ -158,6 +176,10 @@ export class UsersService {
             }),
           );
         }
+      }
+
+      if (dto.roles !== undefined) {
+        await this.replaceRoles(username, dto.roles);
       }
 
       return this.findOne(username);
@@ -211,6 +233,65 @@ export class UsersService {
     ].filter((attribute): attribute is AttributeType => attribute !== undefined);
   }
 
+  private async toResponseWithRoles(
+    user: UserType | CognitoUserLike,
+  ): Promise<UserResponse> {
+    const response = this.toResponse(user);
+    if (!response.username) {
+      return response;
+    }
+
+    const groups = await this.client.send(
+      new AdminListGroupsForUserCommand({
+        UserPoolId: this.userPoolId,
+        Username: response.username,
+      }),
+    );
+    response.roles = (groups.Groups ?? [])
+      .map((group) => group.GroupName)
+      .filter((role): role is string => Boolean(role));
+    return response;
+  }
+
+  private async replaceRoles(username: string, roles: string[]) {
+    const current = await this.client.send(
+      new AdminListGroupsForUserCommand({
+        UserPoolId: this.userPoolId,
+        Username: username,
+      }),
+    );
+    const currentRoles = (current.Groups ?? [])
+      .map((group) => group.GroupName)
+      .filter((role): role is string => Boolean(role));
+
+    await Promise.all(
+      currentRoles
+        .filter((role) => !roles.includes(role))
+        .map((role) =>
+          this.client.send(
+            new AdminRemoveUserFromGroupCommand({
+              UserPoolId: this.userPoolId,
+              Username: username,
+              GroupName: role,
+            }),
+          ),
+        ),
+    );
+    await Promise.all(
+      roles
+        .filter((role) => !currentRoles.includes(role))
+        .map((role) =>
+          this.client.send(
+            new AdminAddUserToGroupCommand({
+              UserPoolId: this.userPoolId,
+              Username: username,
+              GroupName: role,
+            }),
+          ),
+        ),
+    );
+  }
+
   private toResponse(
     user: UserType | CognitoUserLike,
   ): UserResponse {
@@ -231,6 +312,7 @@ export class UsersService {
       createdAt: user.UserCreateDate,
       lastModifiedAt: user.UserLastModifiedDate,
       attributes,
+      roles: [],
     };
   }
 
