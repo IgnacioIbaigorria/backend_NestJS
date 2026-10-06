@@ -17,6 +17,9 @@ RUN npm run build
 # ─── Stage 2: Production ────────────────────────────────────
 FROM node:22-alpine AS production
 
+# Habilita flags Secure en cookies y otros ajustes de producción
+ENV NODE_ENV=production
+
 WORKDIR /app
 
 COPY package*.json ./
