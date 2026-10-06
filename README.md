@@ -15,6 +15,7 @@ API backend para gestionar una tienda de productos ecofriendly y su operación c
 - **Historial:** auditoría de cambios realizados sobre los productos.
 - **Documentación interactiva:** Swagger disponible en `/api/docs`.
 - **Autenticación:** Amazon Cognito User Pool con JWT y grupos como roles.
+- **Usuarios:** gestión administrativa de usuarios y contraseñas de Cognito.
 
 ## Stack tecnológico
 
@@ -90,6 +91,28 @@ Los grupos de Cognito se interpretan como roles:
 | `AUDITOR` | Consultas e historial |
 
 Las operaciones de lectura requieren un token válido. Las operaciones de escritura además verifican el grupo del usuario mediante `RolesGuard`.
+
+### Gestión de usuarios
+
+Los endpoints `/users` requieren un access token cuyo usuario pertenezca al
+grupo `ADMIN`. Permiten listar y consultar usuarios, crear usuarios con nombre
+de usuario y contraseña, actualizar sus atributos o habilitación, restablecer
+contraseñas y eliminarlos. Las contraseñas recibidas por la API deben tener
+entre 8 y 99 caracteres e incluir mayúsculas, minúsculas, números y caracteres
+especiales; Cognito aplica además la política configurada en el User Pool.
+
+La API nunca persiste contraseñas: todas las operaciones se ejecutan mediante
+las operaciones administrativas del User Pool de Cognito. Para crear un usuario
+sin enviar una invitación, se usa `POST /users`:
+
+```json
+{
+  "username": "vendedor01",
+  "password": "UnaClaveSegura1!",
+  "email": "vendedor01@puntoeco.com",
+  "name": "Vendedor PuntoEco"
+}
+```
 
 ### Configuración de Cognito
 
@@ -256,6 +279,7 @@ Todos los endpoints usan JSON y están documentados en Swagger.
 | `/caja` | Resumen, gastos y balance |
 | `/reposicion` | Registrar y consultar reposiciones |
 | `/history` | Consultar cambios de productos |
+| `/users` | Gestión de usuarios de Cognito (solo `ADMIN`) |
 
 ## Estado del proyecto
 

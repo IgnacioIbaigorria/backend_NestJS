@@ -37,6 +37,7 @@ async function bootstrap() {
     .addTag('caja')
     .addTag('reposicion')
     .addTag('history')
+    .addTag('users')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
