@@ -5,6 +5,7 @@ import { CognitoService } from './cognito.service.js';
 import { CognitoBffService } from './cognito-bff.service.js';
 import { RolesGuard } from './roles.guard.js';
 import { AuthController } from './auth.controller.js';
+import { AdminSeedService } from './admin-seed.service.js';
 
 @Module({
   controllers: [AuthController],
@@ -13,6 +14,7 @@ import { AuthController } from './auth.controller.js';
     CognitoBffService,
     CognitoAuthGuard,
     RolesGuard,
+    AdminSeedService,
     {
       provide: APP_GUARD,
       useExisting: CognitoAuthGuard,
