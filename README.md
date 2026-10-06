@@ -2,6 +2,8 @@
 
 API backend para gestionar una tienda de productos ecofriendly y su operación comercial diaria. La aplicación centraliza un catálogo de alternativas reutilizables, cosmética natural y productos de cuidado personal, junto con inventario, categorías, etiquetas, ventas, pagos, reposición de stock, caja y auditoría de cambios.
 
+Frontend de la aplicación: **[IgnacioIbaigorria/frontend-aws](https://github.com/IgnacioIbaigorria/frontend-aws)** ([app en producción](https://d1hjojyfabiyi5.cloudfront.net/))
+
 > Proyecto orientado a demostrar diseño modular, persistencia relacional, validación de datos, migraciones, containerización y despliegue automatizado.
 
 ## Funcionalidades
@@ -14,8 +16,10 @@ API backend para gestionar una tienda de productos ecofriendly y su operación c
 - **Reposición:** registro de entradas de stock con proveedor y costo.
 - **Historial:** auditoría de cambios realizados sobre los productos.
 - **Documentación interactiva:** Swagger disponible en `/api/docs`.
-- **Autenticación:** Amazon Cognito User Pool con JWT y grupos como roles.
-- **Usuarios:** gestión administrativa de usuarios y contraseñas de Cognito.
+- **Autenticación:** flujo BFF sobre Amazon Cognito (`/auth/login`, `/auth/refresh`) con JWT y grupos como roles.
+- **Autorización por roles:** guards globales `CognitoAuthGuard` y `RolesGuard` con matriz de permisos por módulo.
+- **Usuarios:** gestión administrativa de usuarios, contraseñas y roles de Cognito.
+- **Usuario administrador automático:** seed idempotente que crea el admin al arrancar.
 
 ## Stack tecnológico
 
@@ -74,23 +78,54 @@ La validación global usa `whitelist`, `forbidNonWhitelisted` y `transform`, por
 
 La API valida **access tokens JWT emitidos por Amazon Cognito** mediante `aws-jwt-verify`. La validación comprueba la firma RSA usando las claves públicas JWKS del User Pool, el issuer, la expiración, el uso del token (`access`) y el `client_id`.
 
-Todos los endpoints requieren:
+### Flujo BFF de login
+
+El frontend no habla directamente con Cognito: el backend expone dos endpoints **públicos** (marcados con `@Public()` y excluidos del guard global):
+
+| Endpoint | Body | Respuesta |
+| --- | --- | --- |
+| `POST /auth/login` | `username`, `password` | `accessToken`, `refreshToken`, `username` |
+| `POST /auth/refresh` | `refreshToken`, `username` | `accessToken`, `refreshToken` |
+
+Como el App client tiene **client secret**, el backend calcula el `SECRET_HASH` (HMAC-SHA256 de `username + clientId` con el secret, en base64) para ambos flujos. Por eso `refresh` también recibe el `username`.
+
+Los endpoints no públicos requieren:
 
 ```http
 Authorization: Bearer <cognito-access-token>
 ```
 
-Los grupos de Cognito se interpretan como roles:
+### Autorización por roles
+
+Los grupos de Cognito se interpretan como roles (`RolesGuard` lee `cognito:groups` del JWT):
 
 | Grupo | Alcance |
 | --- | --- |
-| `ADMIN` | Acceso completo |
-| `MANAGER` | Operación comercial y configuración del catálogo |
-| `SELLER` | Consulta de productos y registro de ventas |
-| `INVENTORY_MANAGER` | Productos, stock y reposiciones |
+| `ADMIN` | Acceso completo, incluida la gestión de usuarios |
+| `MANAGER` | Operación comercial, caja y catálogo |
+| `SELLER` | Productos, ventas, categorías y etiquetas |
+| `INVENTORY_MANAGER` | Productos, stock, reposiciones e historial |
 | `AUDITOR` | Consultas e historial |
+| `GUEST` | Solo lectura en todos los módulos; sin escritura |
 
-Las operaciones de lectura requieren un token válido. Las operaciones de escritura además verifican el grupo del usuario mediante `RolesGuard`.
+Matriz por módulo (`—` = sin acceso):
+
+| Módulo | ADMIN | MANAGER | INVENTORY_MANAGER | SELLER | GUEST |
+| --- | :---: | :---: | :---: | :---: | :---: |
+| Productos (GET) | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Productos (escritura) | ✅ | ✅ | ✅ | — | — |
+| Ventas (GET) | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Ventas (escritura) | ✅ | ✅ | — | ✅ | — |
+| Categorías / Etiquetas (GET) | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Categorías / Etiquetas (escritura) | ✅ | ✅ | — | — | — |
+| Reposición (GET) | ✅ | ✅ | ✅ | — | ✅ |
+| Reposición (escritura) | ✅ | ✅ | ✅ | — | — |
+| Historial (GET) | ✅ | ✅ | ✅ | — | ✅ |
+| Caja (GET) | ✅ | ✅ | — | — | ✅ |
+| Caja (escritura) | ✅ | ✅ | — | — | — |
+| Usuarios | ✅ | — | — | — | — |
+
+Los endpoints sin `@Roles()` aceptan cualquier token autenticado. Excepción menor: `/products/low-stock` excluye a `SELLER` (solo `ADMIN`, `MANAGER`, `INVENTORY_MANAGER` y `GUEST`). Tras cambiar los roles de un usuario hay que iniciar sesión de nuevo para que el JWT refleje los grupos.
 
 ### Gestión de usuarios
 
@@ -115,25 +150,45 @@ sin enviar una invitación, se usa `POST /users`:
 }
 ```
 
-Los roles disponibles son `ADMIN`, `MANAGER`, `SELLER`, `INVENTORY_MANAGER` y
-`AUDITOR`. En `PATCH /users/:username`, enviar `roles` reemplaza completamente
+Los roles disponibles son `ADMIN`, `MANAGER`, `SELLER`, `INVENTORY_MANAGER`,
+`AUDITOR` y `GUEST`. En `PATCH /users/:username`, enviar `roles` reemplaza completamente
 los roles actuales del usuario; enviar una lista vacía los elimina todos.
+
+### Usuario administrador inicial
+
+Al arrancar, `AdminSeedService` ejecuta un seed idempotente que garantiza la
+existencia del usuario administrador: lo crea si no existe, le fija la
+contraseña y lo asigna al grupo `ADMIN` (creándolo si falta). Las credenciales
+son **obligatorias** y se leen del entorno; si faltan, el arranque falla con un
+error claro:
+
+```env
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=Adminpuntoeco1
+ADMIN_FORCE_RESET=false
+```
+
+`ADMIN_FORCE_RESET=true` fuerza el restablecimiento de la contraseña en cada
+arrancada (por defecto no se toca una contraseña ya existente). La contraseña
+debe cumplir la política del User Pool: mayúscula, minúscula, número y carácter
+especial.
 
 ### Configuración de Cognito
 
 1. Crear un **User Pool** en la misma región de AWS que uses para el proyecto.
-2. Configurar el inicio de sesión con email.
-3. Crear un **App client sin client secret** para el cliente externo que consumirá la API.
-4. Crear los grupos `ADMIN`, `MANAGER`, `SELLER`, `INVENTORY_MANAGER` y `AUDITOR`.
-5. Crear el usuario administrador inicial y asignarlo al grupo `ADMIN`.
-6. Guardar el User Pool ID y el App client ID como variables de entorno:
+2. Configurar el inicio de sesión con nombre de usuario (o email).
+3. Crear un **App client con client secret** y habilitar el flujo `USER_PASSWORD_AUTH`.
+4. Crear los grupos `ADMIN`, `MANAGER`, `SELLER`, `INVENTORY_MANAGER`, `AUDITOR` y `GUEST` (los grupos distinguen mayúsculas: deben ir en mayúsculas).
+5. El usuario administrador lo crea automáticamente el seed al arrancar, o crearlo manualmente y asignarlo al grupo `ADMIN`.
+6. Guardar el User Pool ID, el App client ID y el client secret como variables de entorno:
 
 ```env
 COGNITO_USER_POOL_ID=us-east-1_xxxxxxxxx
 COGNITO_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxx
+COGNITO_CLIENT_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-El cliente externo debe iniciar sesión en Cognito y enviar el **access token**, no el ID token, en cada request. Para Swagger, usar el botón **Authorize** y pegar `Bearer <access-token>`.
+El cliente externo debe iniciar sesión mediante `POST /auth/login` y usar el **access token** devuelto en cada request. Para Swagger, usar el botón **Authorize** y pegar `Bearer <access-token>`.
 
 ### Cognito y capa gratuita
 
@@ -143,14 +198,26 @@ Aunque el uso normal de una tienda pequeña suele quedar dentro del tramo gratui
 
 ### Variables necesarias en Docker
 
-El archivo `.env` de la instancia EC2 debe incluir:
+El archivo `.env` de la instancia EC2 debe incluir (tal como los lista `docker-compose.yml`):
 
 ```env
 DATABASE_URL=postgresql://...
 PORT=3000
 COGNITO_USER_POOL_ID=us-east-1_xxxxxxxxx
 COGNITO_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxx
+COGNITO_CLIENT_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=xxxxxxxxxxxxxxxxxxxx
+AWS_SECRET_ACCESS_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=Adminpuntoeco1
+ADMIN_FORCE_RESET=false
 ```
+
+`ADMIN_USERNAME` y `ADMIN_PASSWORD` son obligatorios: sin ellos el contenedor
+no arranca. Las credenciales AWS se necesitan para que `AdminSeedService` y la
+gestión de usuarios operen sobre el User Pool. Ninguna de estas claves se
+commitea al repositorio.
 
 Después de actualizar estas variables:
 
@@ -158,6 +225,9 @@ Después de actualizar estas variables:
 docker compose up -d --build
 docker compose logs --tail=100 api
 ```
+
+> `docker compose restart` no recarga cambios del `.env`: hay que usar
+> `docker compose up -d --build`.
 
 ## Catálogo inicial
 
@@ -200,6 +270,7 @@ Según la configuración versionada del repositorio:
 - **API pública actual:** `http://34.227.197.241:3000`
 - **Swagger:** `http://34.227.197.241:3000/api/docs`
 - **Base de datos:** PostgreSQL administrado en **Supabase**.
+- **Frontend:** aplicación React desplegada en **AWS S3 + CloudFront** — [IgnacioIbaigorria/frontend-aws](https://github.com/IgnacioIbaigorria/frontend-aws) · [app en producción](https://d1hjojyfabiyi5.cloudfront.net/)
 
 > Las credenciales, claves SSH y la cadena de conexión de base de datos se administran como secretos o variables de entorno y no forman parte del repositorio.
 
@@ -245,6 +316,14 @@ Crear un archivo `.env` en la raíz:
 ```env
 DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require"
 PORT=3000
+COGNITO_USER_POOL_ID=us-east-1_xxxxxxxxx
+COGNITO_CLIENT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxx
+COGNITO_CLIENT_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=xxxxxxxxxxxxxxxxxxxx
+AWS_SECRET_ACCESS_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxx
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=Adminpuntoeco1
 ```
 
 Aplicar las migraciones y levantar el backend:
@@ -277,6 +356,7 @@ Todos los endpoints usan JSON y están documentados en Swagger.
 
 | Recurso | Operaciones destacadas |
 | --- | --- |
+| `/auth` | `POST /login` y `POST /refresh` (públicos) |
 | `/products` | CRUD, búsqueda, filtro por categoría y `/low-stock` |
 | `/categories` | CRUD de categorías |
 | `/tags` | CRUD de etiquetas |
@@ -288,7 +368,7 @@ Todos los endpoints usan JSON y están documentados en Swagger.
 
 ## Estado del proyecto
 
-El sistema cuenta con un flujo funcional para una tienda ecofriendly: catálogo inicial cargable desde el documento comercial, inventario, ventas, caja, reposición y trazabilidad. También incluye una API documentada, persistencia con migraciones y despliegue automatizado. Las siguientes evoluciones naturales son incorporar autenticación y autorización por roles, integración con Amazon Cognito y observabilidad de producción.
+El sistema cuenta con un flujo funcional para una tienda ecofriendly: catálogo inicial cargable desde el documento comercial, inventario, ventas, caja, reposición y trazabilidad. Incluye una API documentada, persistencia con migraciones y despliegue automatizado. La autenticación está implementada con Cognito (flujo BFF con `SECRET_HASH`), autorización por roles con guards globales, gestión de usuarios desde la aplicación y seed automático del administrador. Las siguientes evoluciones naturales son observabilidad de producción, tests E2E de los flujos de autorización y rotación automatizada de secretos.
 
 ## Sobre el proyecto
 
