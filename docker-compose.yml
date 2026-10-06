@@ -10,6 +10,9 @@ services:
       - COGNITO_CLIENT_ID=${COGNITO_CLIENT_ID}
       - COGNITO_CLIENT_SECRET=${COGNITO_CLIENT_SECRET}
       - AWS_REGION=${AWS_REGION}
+      - ADMIN_USERNAME=${ADMIN_USERNAME}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - ADMIN_FORCE_RESET=${ADMIN_FORCE_RESET}
     volumes:
       - ./global-bundle.pem:/app/global-bundle.pem:ro
     restart: unless-stopped
