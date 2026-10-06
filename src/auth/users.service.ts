@@ -4,7 +4,8 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-  TooManyRequestsException,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import {
   AdminCreateUserCommand,
@@ -224,13 +225,13 @@ export class UsersService {
   private toAttributes(
     value: CreateUserDto | UpdateUserDto,
   ): AttributeType[] {
-    return [
-      value.email ? { Name: 'email', Value: value.email } : undefined,
-      value.name ? { Name: 'name', Value: value.name } : undefined,
-      value.phoneNumber
-        ? { Name: 'phone_number', Value: value.phoneNumber }
-        : undefined,
-    ].filter((attribute): attribute is AttributeType => attribute !== undefined);
+    const attributes: AttributeType[] = [];
+    if (value.email) attributes.push({ Name: 'email', Value: value.email });
+    if (value.name) attributes.push({ Name: 'name', Value: value.name });
+    if (value.phoneNumber) {
+      attributes.push({ Name: 'phone_number', Value: value.phoneNumber });
+    }
+    return attributes;
   }
 
   private async toResponseWithRoles(
@@ -295,8 +296,10 @@ export class UsersService {
   private toResponse(
     user: UserType | CognitoUserLike,
   ): UserResponse {
+    const rawAttributes =
+      'UserAttributes' in user ? user.UserAttributes : user.Attributes;
     const attributes = Object.fromEntries(
-      (user.Attributes ?? user.UserAttributes ?? [])
+      (rawAttributes ?? [])
         .filter(
           (attribute): attribute is AttributeType & { Value: string } =>
             Boolean(attribute.Name && attribute.Value),
@@ -333,8 +336,9 @@ export class UsersService {
       name === 'TooManyRequestsException' ||
       name === 'LimitExceededException'
     ) {
-      throw new TooManyRequestsException(
+      throw new HttpException(
         'Cognito ha limitado temporalmente la operación',
+        HttpStatus.TOO_MANY_REQUESTS,
       );
     }
     if (name === 'InvalidParameterException') {
